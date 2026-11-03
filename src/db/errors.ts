@@ -38,6 +38,13 @@ export class DbQueryError extends DbError {
   }
 }
 
+export class DbSchemaError extends DbError {
+  constructor(message: string) {
+    super(message, 'DB_SCHEMA')
+    this.name = 'DbSchemaError'
+  }
+}
+
 export class DbValidationError extends DbError {
   constructor(message: string) {
     super(message, 'DB_VALIDATION')
@@ -127,6 +134,8 @@ export function deserializeError(payload: DbErrorPayload): DbError {
       return new DbInitError(payload.message)
     case 'DB_QUERY':
       return new DbQueryError(payload.message)
+    case 'DB_SCHEMA':
+      return new DbSchemaError(payload.message)
     case 'DB_VALIDATION':
       return new DbValidationError(payload.message)
     case 'DB_NOT_FOUND':
