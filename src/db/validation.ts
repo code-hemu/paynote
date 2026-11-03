@@ -4,6 +4,7 @@ import {
   type PageOptions,
   type PropertyType,
   type ReceiptDetail,
+  type SortDirection,
 } from './types.ts'
 
 const MAX_PAGE_SIZE = 200
@@ -131,6 +132,18 @@ export function optionalDate(value: unknown, field: string): string | null {
   }
 
   return requireDate(value, field)
+}
+
+export function normalizeSortDirection(value: unknown): SortDirection {
+  if (value === undefined || value === null || value === '') {
+    return 'asc'
+  }
+
+  if (value === 'asc' || value === 'desc') {
+    return value
+  }
+
+  throw new DbValidationError('Sort direction must be asc or desc.')
 }
 
 export function normalizePage(options: PageOptions = {}): {
