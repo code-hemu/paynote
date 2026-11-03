@@ -1,0 +1,26 @@
+import { describe, expect, it } from '@guchho/test'
+
+import { formatBytes, formatSchemaVersion } from './format.ts'
+
+describe('formatBytes', () => {
+  it('formats byte values', () => {
+    expect(formatBytes(0)).toBe('0 B')
+    expect(formatBytes(512)).toBe('512 B')
+  })
+
+  it('formats larger units', () => {
+    expect(formatBytes(1024)).toBe('1.0 KB')
+    expect(formatBytes(10 * 1024 * 1024)).toBe('10 MB')
+  })
+
+  it('handles invalid input', () => {
+    expect(formatBytes(-1)).toBe('—')
+    expect(formatBytes(Number.NaN)).toBe('—')
+  })
+})
+
+describe('formatSchemaVersion', () => {
+  it('prefixes the version', () => {
+    expect(formatSchemaVersion(1)).toBe('v1')
+  })
+})
