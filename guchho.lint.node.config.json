@@ -1,0 +1,17 @@
+{
+  "include": [
+    "src/**/*.test.{js,jsx,ts,tsx}",
+    "src/test/**/*.{js,jsx,ts,tsx}",
+    "scripts/**/*.{js,mjs,cjs}",
+    "*.config.{js,mjs,cjs}"
+  ],
+  "platform": "node",
+  "globals": {
+    "__APP_VERSION__": "readonly",
+    "document": "readonly",
+    "window": "readonly"
+  },
+  "rules": {
+    "no-unused-vars": "off"
+  }
+}
