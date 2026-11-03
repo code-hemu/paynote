@@ -6,8 +6,10 @@ export class FakeElement {
   readonly dataset: Record<string, string> = {}
   readonly listeners = new Map<string, Set<Listener>>()
   className = ''
+  disabled = false
   hidden = false
   textContent = ''
+  value = ''
 
   constructor(dataset: Record<string, string> = {}, attributes: Record<string, string> = {}) {
     Object.assign(this.dataset, dataset)
@@ -55,10 +57,14 @@ export class FakeElement {
     this.listeners.get(type)?.delete(listener)
   }
 
-  click() {
-    for (const listener of this.listeners.get('click') ?? []) {
+  dispatch(type: string) {
+    for (const listener of this.listeners.get(type) ?? []) {
       listener()
     }
+  }
+
+  click() {
+    this.dispatch('click')
   }
 }
 
