@@ -696,6 +696,142 @@ button {
   background: var(--surface-subtle);
 }
 
+.button-danger {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.button-danger:hover {
+  background: #b91c1c;
+}
+
+.button-small {
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notice {
+  margin: 0 0 1rem;
+  border: 1px solid rgb(22 163 74 / 25%);
+  border-radius: 0.5rem;
+  background: var(--success-muted);
+  padding: 0.625rem 0.875rem;
+  color: var(--success);
+  font-size: 0.875rem;
+}
+
+.form-card {
+  margin-bottom: 1.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
+}
+
+.input-textarea {
+  min-height: 5.5rem;
+  height: auto;
+  padding: 0.625rem 0.75rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.required {
+  color: var(--danger);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.75rem;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.form-error {
+  margin: 0;
+  border: 1px solid rgb(220 38 38 / 25%);
+  border-radius: 0.5rem;
+  background: var(--danger-muted);
+  padding: 0.625rem 0.875rem;
+  color: var(--danger);
+  font-size: 0.8125rem;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.table-cell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  white-space: nowrap;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface-muted);
+  padding: 1rem;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.stat-label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.section-heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
 .feature-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -815,7 +951,8 @@ button {
   }
 
   .grid,
-  .feature-list {
+  .feature-list,
+  .form-grid {
     grid-template-columns: 1fr;
   }
 

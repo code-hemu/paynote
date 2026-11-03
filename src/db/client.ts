@@ -13,10 +13,12 @@ import {
 } from './protocol.ts'
 import type {
   Customer,
+  CustomerDetail,
   CustomerInput,
   CustomerListOptions,
   ListResult,
   Property,
+  PropertyDetail,
   PropertyInput,
   PropertyListOptions,
   Receipt,
@@ -128,6 +130,17 @@ export class SqliteClient {
     return this.request('customers.get', { id })
   }
 
+  getCustomerDetail(id: string): Promise<CustomerDetail> {
+    return this.request('customers.detail', { id })
+  }
+
+  isCustomerNameTaken(
+    name: string,
+    excludeId?: string | null,
+  ): Promise<boolean> {
+    return this.request('customers.nameTaken', { name, excludeId })
+  }
+
   createCustomer(input: CustomerInput): Promise<Customer> {
     return this.request('customers.create', input)
   }
@@ -148,6 +161,10 @@ export class SqliteClient {
 
   getProperty(id: string): Promise<Property> {
     return this.request('properties.get', { id })
+  }
+
+  getPropertyDetail(id: string): Promise<PropertyDetail> {
+    return this.request('properties.detail', { id })
   }
 
   createProperty(input: PropertyInput): Promise<Property> {

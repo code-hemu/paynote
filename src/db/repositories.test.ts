@@ -8,9 +8,11 @@ import {
   createCustomer,
   deleteCustomer,
   getCustomer,
+  isCustomerNameTaken,
   listCustomers,
   updateCustomer,
 } from './customers.ts'
+import { getCustomerDetail, getPropertyDetail } from './details.ts'
 import {
   DbConflictError,
   DbNotFoundError,
@@ -109,6 +111,59 @@ describe('customer repository', () => {
     ).toEqual(['Zara Khan', 'Asha Rao'])
   })
 
+  it('rejects duplicate customer names case-insensitively', () => {
+    openDatabase()
+
+    const customer = createCustomer(db, { fullName: 'Asha Rao' })
+
+    expect(isCustomerNameTaken(db, 'asha rao')).toBe(true)
+    expect(isCustomerNameTaken(db, 'ASHA RAO', customer.id)).toBe(false)
+    expect(
+      captureError(() => createCustomer(db, { fullName: 'Asha Rao' })),
+    ).toBeInstanceOf(DbConflictError)
+
+    const other = createCustomer(db, { fullName: 'Zara Khan' })
+
+    expect(
+      captureError(() =>
+        updateCustomer(db, other.id, { fullName: 'asha rao' }),
+      ),
+    ).toBeInstanceOf(DbConflictError)
+  })
+
+  it('summarizes customer receipts and totals', () => {
+    openDatabase()
+
+    const customer = createCustomer(db, { fullName: 'Asha Rao' })
+    const property = createProperty(db, {
+      name: 'Main Shop',
+      propertyType: 'shop',
+    })
+
+    createReceipt(db, {
+      receiptType: 'rent',
+      customerId: customer.id,
+      propertyId: property.id,
+      receiptDate: '2026-11-01',
+      amountPaise: 125000,
+      paymentMethod: 'cash',
+    })
+    createReceipt(db, {
+      receiptType: 'deposit',
+      customerId: customer.id,
+      receiptDate: '2026-11-02',
+      amountPaise: 500000,
+      paymentMethod: 'upi',
+    })
+
+    const detail = getCustomerDetail(db, customer.id)
+
+    expect(detail.receiptCount).toBe(2)
+    expect(detail.totalPaise).toBe(625000)
+    expect(detail.recentReceipts).toHaveLength(2)
+    expect(detail.recentReceipts[0]?.receiptDate).toBe('2026-11-02')
+  })
+
   it('rejects deleting a customer that has receipts', () => {
     openDatabase()
 
@@ -163,6 +218,59 @@ describe('property repository', () => {
     })
 
     expect(updated.notes).toBe('Monsoon access only')
+  })
+
+  it('sorts properties by name and summarises linked customers', () => {
+    openDatabase()
+
+    const shop = createProperty(db, {
+      name: 'Zara Shop',
+      propertyType: 'shop',
+    })
+    createProperty(db, {
+      name: 'Asha House',
+      propertyType: 'house',
+    })
+
+    expect(
+      listProperties(db, { sortBy: 'name', sortDirection: 'asc' }).items.map(
+        (property) => property.name,
+      ),
+    ).toEqual(['Asha House', 'Zara Shop'])
+    expect(
+      listProperties(db, { sortBy: 'name', sortDirection: 'desc' }).items.map(
+        (property) => property.name,
+      ),
+    ).toEqual(['Zara Shop', 'Asha House'])
+
+    const asha = createCustomer(db, { fullName: 'Asha Rao' })
+    const ravi = createCustomer(db, { fullName: 'Ravi Shah' })
+
+    createReceipt(db, {
+      receiptType: 'rent',
+      customerId: asha.id,
+      propertyId: shop.id,
+      amountPaise: 200000,
+      paymentMethod: 'cash',
+    })
+    createReceipt(db, {
+      receiptType: 'rent',
+      customerId: ravi.id,
+      propertyId: shop.id,
+      amountPaise: 100000,
+      paymentMethod: 'upi',
+    })
+
+    const detail = getPropertyDetail(db, shop.id)
+
+    expect(detail.receiptCount).toBe(2)
+    expect(detail.totalPaise).toBe(300000)
+    expect(detail.customers.map((customer) => customer.fullName)).toEqual([
+      'Asha Rao',
+      'Ravi Shah',
+    ])
+    expect(detail.customers[0]?.totalPaise).toBe(200000)
+    expect(detail.recentReceipts).toHaveLength(2)
   })
 
   it('rejects deleting a property that has receipts', () => {

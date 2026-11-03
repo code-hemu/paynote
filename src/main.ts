@@ -1,5 +1,7 @@
 import { createApp } from './app/app.ts'
-import { createCustomerList } from './app/customers.ts'
+import { createCustomerPage } from './app/customer-page.ts'
+import { createPropertyPage } from './app/property-page.ts'
 
 createApp()
-createCustomerList(document)
+createCustomerPage(document)
+createPropertyPage(document)

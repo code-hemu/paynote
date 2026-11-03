@@ -7,6 +7,7 @@ export class FakeElement {
   readonly listeners = new Map<string, Set<Listener>>()
   className = ''
   disabled = false
+  focused = false
   hidden = false
   textContent = ''
   value = ''
@@ -65,6 +66,10 @@ export class FakeElement {
 
   click() {
     this.dispatch('click')
+  }
+
+  focus() {
+    this.focused = true
   }
 }
 

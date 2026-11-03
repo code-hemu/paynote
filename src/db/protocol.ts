@@ -1,9 +1,11 @@
 import type {
   Customer,
+  CustomerDetail,
   CustomerInput,
   CustomerListOptions,
   ListResult,
   Property,
+  PropertyDetail,
   PropertyInput,
   PropertyListOptions,
   Receipt,
@@ -34,11 +36,14 @@ const DB_METHODS = [
   'close',
   'customers.list',
   'customers.get',
+  'customers.detail',
+  'customers.nameTaken',
   'customers.create',
   'customers.update',
   'customers.delete',
   'properties.list',
   'properties.get',
+  'properties.detail',
   'properties.create',
   'properties.update',
   'properties.delete',
@@ -60,6 +65,11 @@ export interface DbMethodMap {
     result: ListResult<Customer>
   }
   'customers.get': { params: { id: string }; result: Customer }
+  'customers.detail': { params: { id: string }; result: CustomerDetail }
+  'customers.nameTaken': {
+    params: { name: string; excludeId?: string | null }
+    result: boolean
+  }
   'customers.create': { params: CustomerInput; result: Customer }
   'customers.update': {
     params: { id: string; input: CustomerInput }
@@ -71,6 +81,7 @@ export interface DbMethodMap {
     result: ListResult<Property>
   }
   'properties.get': { params: { id: string }; result: Property }
+  'properties.detail': { params: { id: string }; result: PropertyDetail }
   'properties.create': { params: PropertyInput; result: Property }
   'properties.update': {
     params: { id: string; input: PropertyInput }

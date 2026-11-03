@@ -9,9 +9,11 @@ import {
   createCustomer,
   deleteCustomer,
   getCustomer,
+  isCustomerNameTaken,
   listCustomers,
   updateCustomer,
 } from './customers.ts'
+import { getCustomerDetail, getPropertyDetail } from './details.ts'
 import {
   DATABASE_DIRECTORY,
   DATABASE_FILE,
@@ -236,6 +238,12 @@ async function dispatch(request: DbRequest): Promise<unknown> {
       return listCustomers(db, request.params)
     case 'customers.get':
       return getCustomer(db, requireParams(request.params).id)
+    case 'customers.detail':
+      return getCustomerDetail(db, requireParams(request.params).id)
+    case 'customers.nameTaken': {
+      const params = requireParams(request.params)
+      return isCustomerNameTaken(db, params.name, params.excludeId)
+    }
     case 'customers.create':
       return createCustomer(db, requireObject(request.params))
     case 'customers.update': {
@@ -248,6 +256,8 @@ async function dispatch(request: DbRequest): Promise<unknown> {
       return listProperties(db, request.params)
     case 'properties.get':
       return getProperty(db, requireParams(request.params).id)
+    case 'properties.detail':
+      return getPropertyDetail(db, requireParams(request.params).id)
     case 'properties.create':
       return createProperty(db, requireObject(request.params))
     case 'properties.update': {

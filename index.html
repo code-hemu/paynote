@@ -397,7 +397,187 @@
                   Manage the people and businesses you issue receipts to.
                 </p>
               </div>
+              <div class="page-actions">
+                <button class="button button-primary" type="button" data-customer-add>
+                  <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+                  Add customer
+                </button>
+              </div>
             </div>
+
+            <p class="notice" data-customer-notice role="status" aria-live="polite" hidden></p>
+
+            <div class="card form-card" data-customer-form-panel hidden>
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title" data-customer-form-title>Add customer</h2>
+                  <p class="card-description">
+                    Name is required. Phone, email, address, and notes are optional.
+                  </p>
+                </div>
+              </div>
+              <form class="form" data-customer-form novalidate>
+                <div class="form-grid">
+                  <label class="field">
+                    <span class="field-label">Full name <span class="required">*</span></span>
+                    <input
+                      class="input"
+                      type="text"
+                      name="fullName"
+                      autocomplete="name"
+                      maxlength="200"
+                      data-customer-input="fullName"
+                    />
+                    <span class="field-error" data-customer-field-error="fullName" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Phone</span>
+                    <input
+                      class="input"
+                      type="tel"
+                      name="phone"
+                      autocomplete="tel"
+                      maxlength="40"
+                      data-customer-input="phone"
+                    />
+                    <span class="field-error" data-customer-field-error="phone" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Email</span>
+                    <input
+                      class="input"
+                      type="email"
+                      name="email"
+                      autocomplete="email"
+                      maxlength="200"
+                      data-customer-input="email"
+                    />
+                    <span class="field-error" data-customer-field-error="email" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Address</span>
+                    <input
+                      class="input"
+                      type="text"
+                      name="address"
+                      autocomplete="street-address"
+                      maxlength="500"
+                      data-customer-input="address"
+                    />
+                    <span class="field-error" data-customer-field-error="address" hidden></span>
+                  </label>
+                  <label class="field span-2">
+                    <span class="field-label">Notes</span>
+                    <textarea
+                      class="input input-textarea"
+                      name="notes"
+                      rows="3"
+                      maxlength="2000"
+                      data-customer-input="notes"
+                    ></textarea>
+                    <span class="field-error" data-customer-field-error="notes" hidden></span>
+                  </label>
+                </div>
+                <p class="form-error" data-customer-form-error role="alert" hidden></p>
+                <div class="form-actions">
+                  <button class="button button-primary" type="submit" data-customer-save>
+                    Save customer
+                  </button>
+                  <button class="button button-secondary" type="button" data-customer-cancel>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card" data-customer-detail-panel hidden>
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title" data-customer-detail-name tabindex="-1">Customer</h2>
+                  <p class="card-description" data-customer-detail-meta></p>
+                </div>
+                <div class="page-actions">
+                  <button
+                    class="button button-small button-secondary"
+                    type="button"
+                    data-customer-detail-edit
+                  >
+                    Edit
+                  </button>
+                  <button
+                    class="button button-small button-secondary"
+                    type="button"
+                    data-customer-detail-delete
+                  >
+                    Delete
+                  </button>
+                  <button
+                    class="button button-small button-secondary"
+                    type="button"
+                    data-customer-detail-close
+                  >
+                    Back to list
+                  </button>
+                </div>
+              </div>
+              <div class="card-content stack">
+                <div class="stat-grid" data-customer-detail-stats></div>
+                <dl class="info-list" data-customer-detail-info></dl>
+                <div>
+                  <h3 class="section-heading">Recent receipts</h3>
+                  <div class="table-scroll">
+                    <table class="table">
+                      <caption class="sr-only">Recent receipts for this customer</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Number</th>
+                          <th scope="col">Date</th>
+                          <th scope="col">Type</th>
+                          <th scope="col">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody data-customer-detail-receipts></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-customer-detail-empty hidden>
+                    No receipts have been issued to this customer yet.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="card error-card"
+              data-customer-delete-panel
+              role="alertdialog"
+              aria-labelledby="customer-delete-title"
+              hidden
+            >
+              <svg class="card-icon icon-danger" aria-hidden="true">
+                <use href="#icon-alert"></use>
+              </svg>
+              <div>
+                <h2 class="card-title" id="customer-delete-title">Delete customer</h2>
+                <p class="card-description" data-customer-delete-message></p>
+                <div class="form-actions">
+                  <button
+                    class="button button-danger"
+                    type="button"
+                    data-customer-delete-confirm
+                  >
+                    Delete customer
+                  </button>
+                  <button
+                    class="button button-secondary"
+                    type="button"
+                    data-customer-delete-cancel
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div data-customer-list>
               <div class="list-toolbar" role="search">
                 <label class="field field-grow">
@@ -439,6 +619,7 @@
                       <th scope="col">Email</th>
                       <th scope="col">Address</th>
                       <th scope="col">Updated</th>
+                      <th scope="col">Actions</th>
                     </tr>
                   </thead>
                   <tbody data-customer-rows></tbody>
@@ -451,6 +632,9 @@
                 </span>
                 <h2 data-customer-empty-title>No customers yet</h2>
                 <p data-customer-empty-message>Customer records will appear here once you add them.</p>
+                <button class="button button-primary" type="button" data-customer-empty-add>
+                  Add your first customer
+                </button>
               </div>
 
               <div class="card error-card" data-customer-error role="alert" hidden>
@@ -490,13 +674,306 @@
                 <h1 class="page-title" id="properties-title">Properties</h1>
                 <p class="page-description">Track houses, godowns, shops, and other properties.</p>
               </div>
+              <div class="page-actions">
+                <button class="button button-primary" type="button" data-property-add>
+                  <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+                  Add property
+                </button>
+              </div>
             </div>
-            <div class="empty-state">
-              <span class="empty-icon">
-                <svg class="icon" aria-hidden="true"><use href="#icon-building"></use></svg>
-              </span>
-              <h2>Planned for Phase 2</h2>
-              <p>Property records, associations, search, and receipt history arrive in Phase 2.</p>
+
+            <p class="notice" data-property-notice role="status" aria-live="polite" hidden></p>
+
+            <div class="card form-card" data-property-form-panel hidden>
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title" data-property-form-title>Add property</h2>
+                  <p class="card-description">
+                    Name and type are required. Other details are optional.
+                  </p>
+                </div>
+              </div>
+              <form class="form" data-property-form novalidate>
+                <div class="form-grid">
+                  <label class="field">
+                    <span class="field-label">Property name <span class="required">*</span></span>
+                    <input
+                      class="input"
+                      type="text"
+                      name="name"
+                      maxlength="200"
+                      data-property-input="name"
+                    />
+                    <span class="field-error" data-property-field-error="name" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Property type <span class="required">*</span></span>
+                    <select class="input" name="propertyType" data-property-input="propertyType">
+                      <option value="house">House</option>
+                      <option value="godown">Godown</option>
+                      <option value="shop">Shop</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <span
+                      class="field-error"
+                      data-property-field-error="propertyType"
+                      hidden
+                    ></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Property number</span>
+                    <input
+                      class="input"
+                      type="text"
+                      name="propertyNumber"
+                      maxlength="100"
+                      data-property-input="propertyNumber"
+                    />
+                    <span
+                      class="field-error"
+                      data-property-field-error="propertyNumber"
+                      hidden
+                    ></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Address</span>
+                    <input
+                      class="input"
+                      type="text"
+                      name="address"
+                      autocomplete="street-address"
+                      maxlength="500"
+                      data-property-input="address"
+                    />
+                    <span class="field-error" data-property-field-error="address" hidden></span>
+                  </label>
+                  <label class="field span-2">
+                    <span class="field-label">Description</span>
+                    <textarea
+                      class="input input-textarea"
+                      name="description"
+                      rows="3"
+                      maxlength="2000"
+                      data-property-input="description"
+                    ></textarea>
+                    <span
+                      class="field-error"
+                      data-property-field-error="description"
+                      hidden
+                    ></span>
+                  </label>
+                  <label class="field span-2">
+                    <span class="field-label">Notes</span>
+                    <textarea
+                      class="input input-textarea"
+                      name="notes"
+                      rows="3"
+                      maxlength="2000"
+                      data-property-input="notes"
+                    ></textarea>
+                    <span class="field-error" data-property-field-error="notes" hidden></span>
+                  </label>
+                </div>
+                <p class="form-error" data-property-form-error role="alert" hidden></p>
+                <div class="form-actions">
+                  <button class="button button-primary" type="submit" data-property-save>
+                    Save property
+                  </button>
+                  <button class="button button-secondary" type="button" data-property-cancel>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card" data-property-detail-panel hidden>
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title" data-property-detail-name tabindex="-1">Property</h2>
+                  <p class="card-description" data-property-detail-meta></p>
+                </div>
+                <div class="page-actions">
+                  <button
+                    class="button button-small button-secondary"
+                    type="button"
+                    data-property-detail-edit
+                  >
+                    Edit
+                  </button>
+                  <button
+                    class="button button-small button-secondary"
+                    type="button"
+                    data-property-detail-delete
+                  >
+                    Delete
+                  </button>
+                  <button
+                    class="button button-small button-secondary"
+                    type="button"
+                    data-property-detail-close
+                  >
+                    Back to list
+                  </button>
+                </div>
+              </div>
+              <div class="card-content stack">
+                <div class="stat-grid" data-property-detail-stats></div>
+                <dl class="info-list" data-property-detail-info></dl>
+                <div>
+                  <h3 class="section-heading">Linked customers</h3>
+                  <dl class="info-list" data-property-detail-customers></dl>
+                  <p class="list-status" data-property-detail-customers-empty hidden>
+                    No customers have receipts for this property yet.
+                  </p>
+                </div>
+                <div>
+                  <h3 class="section-heading">Recent receipts</h3>
+                  <div class="table-scroll">
+                    <table class="table">
+                      <caption class="sr-only">Recent receipts for this property</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Number</th>
+                          <th scope="col">Date</th>
+                          <th scope="col">Customer</th>
+                          <th scope="col">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody data-property-detail-receipts></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-property-detail-empty hidden>
+                    No receipts have been issued for this property yet.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="card error-card"
+              data-property-delete-panel
+              role="alertdialog"
+              aria-labelledby="property-delete-title"
+              hidden
+            >
+              <svg class="card-icon icon-danger" aria-hidden="true">
+                <use href="#icon-alert"></use>
+              </svg>
+              <div>
+                <h2 class="card-title" id="property-delete-title">Delete property</h2>
+                <p class="card-description" data-property-delete-message></p>
+                <div class="form-actions">
+                  <button
+                    class="button button-danger"
+                    type="button"
+                    data-property-delete-confirm
+                  >
+                    Delete property
+                  </button>
+                  <button
+                    class="button button-secondary"
+                    type="button"
+                    data-property-delete-cancel
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div data-property-list>
+              <div class="list-toolbar" role="search">
+                <label class="field field-grow">
+                  <span class="field-label">Search properties</span>
+                  <input
+                    class="input"
+                    type="search"
+                    name="property-search"
+                    placeholder="Name, number, or address"
+                    autocomplete="off"
+                    spellcheck="false"
+                    data-property-search
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">Type</span>
+                  <select class="input" name="property-type" data-property-type>
+                    <option value="">All types</option>
+                    <option value="house">House</option>
+                    <option value="godown">Godown</option>
+                    <option value="shop">Shop</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Sort by</span>
+                  <select class="input" name="property-sort" data-property-sort>
+                    <option value="name:asc">Name A–Z</option>
+                    <option value="name:desc">Name Z–A</option>
+                    <option value="updatedAt:desc">Recently updated</option>
+                    <option value="updatedAt:asc">Oldest updated</option>
+                    <option value="createdAt:desc">Newest added</option>
+                    <option value="createdAt:asc">Oldest added</option>
+                  </select>
+                </label>
+              </div>
+
+              <p class="list-status" data-property-status aria-live="polite">
+                Loading properties…
+              </p>
+
+              <div class="card table-scroll" data-property-table hidden>
+                <table class="table">
+                  <caption class="sr-only">Properties</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Property</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Number</th>
+                      <th scope="col">Address</th>
+                      <th scope="col">Updated</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody data-property-rows></tbody>
+                </table>
+              </div>
+
+              <div class="empty-state" data-property-empty hidden>
+                <span class="empty-icon">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-building"></use></svg>
+                </span>
+                <h2 data-property-empty-title>No properties yet</h2>
+                <p data-property-empty-message>
+                  Property records will appear here once you add them.
+                </p>
+                <button class="button button-primary" type="button" data-property-empty-add>
+                  Add your first property
+                </button>
+              </div>
+
+              <div class="card error-card" data-property-error role="alert" hidden>
+                <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                <div>
+                  <h2 class="card-title">Could not load properties</h2>
+                  <p class="card-description" data-property-error-message>
+                    The property list could not be loaded.
+                  </p>
+                  <button class="button button-secondary" type="button" data-property-retry>
+                    Try again
+                  </button>
+                </div>
+              </div>
+
+              <nav class="pagination" data-property-pagination aria-label="Property pages" hidden>
+                <button class="button button-secondary" type="button" data-property-previous>
+                  Previous
+                </button>
+                <span class="pagination-status" data-property-page>Page 1</span>
+                <button class="button button-secondary" type="button" data-property-next>
+                  Next
+                </button>
+              </nav>
             </div>
           </section>
 

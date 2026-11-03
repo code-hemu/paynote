@@ -20,6 +20,9 @@ export interface CustomerListConfig {
   debounceMs?: number
   load?: CustomerLoader
   pageSize?: number
+  onView?: (customer: Customer) => void
+  onEdit?: (customer: Customer) => void
+  onDelete?: (customer: Customer) => void
 }
 
 function parseSort(value: string): {
@@ -113,6 +116,9 @@ export function createCustomerList(
 
   function renderRows(items: Customer[]) {
     rows!.replaceChildren()
+    const showActions = Boolean(
+      config.onView || config.onEdit || config.onDelete,
+    )
 
     for (const customer of items) {
       const row = doc.createElement('tr')
@@ -138,8 +144,47 @@ export function createCustomerList(
       updated.textContent = formatDate(customer.updatedAt)
 
       row.append(name, phone, email, address, updated)
+
+      if (showActions) {
+        row.append(createActions(customer))
+      }
+
       rows!.append(row)
     }
+  }
+
+  function createActions(customer: Customer): HTMLTableCellElement {
+    const cell = doc.createElement('td')
+    cell.className = 'table-cell-actions'
+
+    function addAction(
+      label: string,
+      action: 'view' | 'edit' | 'delete',
+      handler: (customer: Customer) => void,
+    ) {
+      const button = doc.createElement('button')
+      button.type = 'button'
+      button.className = 'button button-small button-secondary'
+      button.textContent = label
+      button.dataset.customerAction = action
+      button.dataset.customerId = customer.id
+      button.addEventListener('click', () => handler(customer))
+      cell.append(button)
+    }
+
+    if (config.onView) {
+      addAction('View', 'view', config.onView)
+    }
+
+    if (config.onEdit) {
+      addAction('Edit', 'edit', config.onEdit)
+    }
+
+    if (config.onDelete) {
+      addAction('Delete', 'delete', config.onDelete)
+    }
+
+    return cell
   }
 
   function render(result: ListResult<Customer>) {

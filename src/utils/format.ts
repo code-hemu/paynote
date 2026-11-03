@@ -26,6 +26,31 @@ export function formatSchemaVersion(version: number): string {
   return `v${version}`
 }
 
+export function formatCurrency(paise: number): string {
+  if (!Number.isFinite(paise)) {
+    return '—'
+  }
+
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(paise / 100)
+}
+
+export function formatLabel(value: string): string {
+  if (!value) {
+    return '—'
+  }
+
+  return value
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export function formatDate(value: string): string {
   const date = new Date(value)
 

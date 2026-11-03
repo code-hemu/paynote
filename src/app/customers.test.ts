@@ -93,6 +93,7 @@ function makeResult(
 function createList(
   fixture: Fixture,
   load: (options?: CustomerListOptions) => Promise<ListResult<Customer>>,
+  config: Parameters<typeof createCustomerList>[1] = {},
 ) {
   const controller = createCustomerList(
     fixture.document as unknown as Document,
@@ -100,6 +101,7 @@ function createList(
       debounceMs: 0,
       load,
       pageSize: 25,
+      ...config,
     },
   )
 
@@ -271,6 +273,36 @@ describe('Customer list', () => {
 
     expect(attempts).toBe(2)
     expect(fixture.table.hidden).toBe(false)
+  })
+
+  it('invokes row actions when configured', async () => {
+    const fixture = createFixture()
+    const customer = makeCustomer(1, { fullName: 'Asha Rao' })
+    const viewed: string[] = []
+    const controller = createList(
+      fixture,
+      async (options) => makeResult([customer], 1, options),
+      {
+        onView: (item) => viewed.push(item.id),
+        onEdit: (item) => viewed.push(`edit:${item.id}`),
+        onDelete: (item) => viewed.push(`delete:${item.id}`),
+      },
+    )
+
+    await controller.refresh()
+
+    const actions = fixture.rows.children[0]?.children[5]
+    expect(actions?.children).toHaveLength(3)
+
+    actions?.children[0]?.click()
+    actions?.children[1]?.click()
+    actions?.children[2]?.click()
+
+    expect(viewed).toEqual([
+      customer.id,
+      `edit:${customer.id}`,
+      `delete:${customer.id}`,
+    ])
   })
 
   it('loads when the customer route becomes active', async () => {
