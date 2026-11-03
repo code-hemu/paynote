@@ -6,6 +6,7 @@ import {
   DbError,
   DbNotFoundError,
   DbQueryError,
+  DbSchemaError,
   DbUnsupportedError,
   DbValidationError,
   deserializeError,
@@ -76,5 +77,12 @@ describe('database errors', () => {
         message: 'Invalid',
       }),
     ).toBeInstanceOf(DbValidationError)
+    expect(
+      deserializeError({
+        name: 'DbSchemaError',
+        code: 'DB_SCHEMA',
+        message: 'Incompatible',
+      }),
+    ).toBeInstanceOf(DbSchemaError)
   })
 })
