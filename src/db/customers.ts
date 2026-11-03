@@ -1,12 +1,17 @@
 import type { Database, SqlValue } from '@sqlite.org/sqlite-wasm'
 
 import { writeAuditLog } from './audit.ts'
-import { DbConflictError, DbNotFoundError } from './errors.ts'
+import {
+  DbConflictError,
+  DbNotFoundError,
+  DbValidationError,
+} from './errors.ts'
 import { rowNullableText, rowText, toNumber } from './rows.ts'
 import type {
   Customer,
   CustomerInput,
   CustomerListOptions,
+  CustomerSortField,
   ListResult,
 } from './types.ts'
 import {
@@ -14,6 +19,7 @@ import {
   newId,
   normalizePage,
   normalizeSearch,
+  normalizeSortDirection,
   nowIso,
   optionalText,
   requireId,
@@ -22,12 +28,21 @@ import {
 
 const CUSTOMER_COLUMNS = `id, full_name, phone, email, address, notes, created_at, updated_at`
 
+const CUSTOMER_SORT_COLUMNS: Record<CustomerSortField, string> = {
+  name: 'full_name COLLATE NOCASE',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+}
+
 export function listCustomers(
   db: Database,
   options: CustomerListOptions = {},
 ): ListResult<Customer> {
   const { limit, offset } = normalizePage(options)
   const search = normalizeSearch(options.search)
+  const sortBy = normalizeCustomerSortField(options.sortBy)
+  const sortDirection = normalizeSortDirection(options.sortDirection)
+  const sortColumn = CUSTOMER_SORT_COLUMNS[sortBy]
   const conditions: string[] = []
   const bind: SqlValue[] = []
 
@@ -52,7 +67,7 @@ export function listCustomers(
     `SELECT ${CUSTOMER_COLUMNS}
      FROM customers
      ${where}
-     ORDER BY full_name COLLATE NOCASE ASC, created_at ASC
+     ORDER BY ${sortColumn} ${sortDirection.toUpperCase()}, full_name COLLATE NOCASE ASC
      LIMIT ? OFFSET ?`,
     [...bind, limit, offset],
   )
@@ -176,6 +191,18 @@ export function deleteCustomer(db: Database, id: string): void {
       fullName: customer.fullName,
     })
   })
+}
+
+function normalizeCustomerSortField(value: unknown): CustomerSortField {
+  if (value === undefined || value === null || value === '') {
+    return 'name'
+  }
+
+  if (value === 'name' || value === 'createdAt' || value === 'updatedAt') {
+    return value
+  }
+
+  throw new DbValidationError('Sort field must be name, createdAt, or updatedAt.')
 }
 
 function normalizeCustomer(input: CustomerInput): {
