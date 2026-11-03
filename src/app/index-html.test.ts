@@ -27,6 +27,14 @@ const mountPoints = [
   'data-dashboard-error',
   'data-error-message',
   'data-retry',
+  'data-customer-search',
+  'data-customer-sort',
+  'data-customer-status',
+  'data-customer-table',
+  'data-customer-rows',
+  'data-customer-empty',
+  'data-customer-error',
+  'data-customer-pagination',
 ]
 
 describe('index.html shell', () => {
