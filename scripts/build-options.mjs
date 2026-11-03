@@ -13,6 +13,7 @@ export const buildOptions = {
   format: 'esm',
   loader: {
     '.wasm': 'file',
+    '.webmanifest': 'file',
   },
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),

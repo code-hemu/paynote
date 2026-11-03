@@ -1,4 +1,12 @@
 import type {
+  BackupFile,
+  RestoreMode,
+  RestoreSummary,
+} from '../domain/backup.ts'
+import type { ReportSummary } from '../domain/reports.ts'
+import type { ReportOptions } from './reports.ts'
+import type { SettingRecord } from './types.ts'
+import type {
   Customer,
   CustomerDetail,
   CustomerInput,
@@ -52,6 +60,11 @@ const DB_METHODS = [
   'receipts.create',
   'receipts.update',
   'receipts.delete',
+  'settings.list',
+  'settings.set',
+  'reports.summary',
+  'backup.export',
+  'backup.restore',
 ] as const
 
 export type DbMethod = (typeof DB_METHODS)[number]
@@ -99,6 +112,20 @@ export interface DbMethodMap {
     result: Receipt
   }
   'receipts.delete': { params: { id: string }; result: null }
+  'settings.list': { params: undefined; result: SettingRecord[] }
+  'settings.set': {
+    params: { values: Record<string, string> }
+    result: SettingRecord[]
+  }
+  'reports.summary': {
+    params: ReportOptions | undefined
+    result: ReportSummary
+  }
+  'backup.export': { params: undefined; result: BackupFile }
+  'backup.restore': {
+    params: { backup: BackupFile; mode: RestoreMode }
+    result: RestoreSummary
+  }
 }
 
 export type DbRequest<M extends DbMethod = DbMethod> = {

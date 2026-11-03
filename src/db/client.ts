@@ -1,3 +1,10 @@
+import type {
+  BackupFile,
+  RestoreMode,
+  RestoreSummary,
+} from '../domain/backup.ts'
+import type { ReportSummary } from '../domain/reports.ts'
+
 import { DATABASE_WORKER_FILE } from './constants.ts'
 import {
   DbClientError,
@@ -11,6 +18,7 @@ import {
   type DbMethod,
   type DbMethodMap,
 } from './protocol.ts'
+import type { ReportOptions } from './reports.ts'
 import type {
   Customer,
   CustomerDetail,
@@ -25,6 +33,7 @@ import type {
   ReceiptInput,
   ReceiptListOptions,
   ReceiptSummary,
+  SettingRecord,
 } from './types.ts'
 
 export interface WorkerLike {
@@ -199,6 +208,26 @@ export class SqliteClient {
 
   async deleteReceipt(id: string): Promise<void> {
     await this.request('receipts.delete', { id })
+  }
+
+  listSettings(): Promise<SettingRecord[]> {
+    return this.request('settings.list')
+  }
+
+  setSettings(values: Record<string, string>): Promise<SettingRecord[]> {
+    return this.request('settings.set', { values })
+  }
+
+  getReportSummary(options?: ReportOptions): Promise<ReportSummary> {
+    return this.request('reports.summary', options)
+  }
+
+  exportBackup(): Promise<BackupFile> {
+    return this.request('backup.export')
+  }
+
+  restoreBackup(backup: BackupFile, mode: RestoreMode): Promise<RestoreSummary> {
+    return this.request('backup.restore', { backup, mode })
   }
 
   async close(): Promise<void> {

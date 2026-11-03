@@ -5,6 +5,7 @@ import sqlite3InitModule, {
 } from '@sqlite.org/sqlite-wasm'
 import wasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm'
 
+import { exportBackup, restoreBackup } from './backup.ts'
 import {
   createCustomer,
   deleteCustomer,
@@ -29,6 +30,8 @@ import {
   toDbError,
 } from './errors.ts'
 import { migrateDatabase, readSchemaVersion } from './migrations.ts'
+import { getReportSummary } from './reports.ts'
+import { listSettings, setSettings } from './settings.ts'
 import {
   createProperty,
   deleteProperty,
@@ -278,6 +281,19 @@ async function dispatch(request: DbRequest): Promise<unknown> {
     }
     case 'receipts.delete':
       return deleteReceipt(db, requireParams(request.params).id)
+    case 'settings.list':
+      return listSettings(db)
+    case 'settings.set':
+      setSettings(db, requireParams(request.params).values)
+      return listSettings(db)
+    case 'reports.summary':
+      return getReportSummary(db, request.params)
+    case 'backup.export':
+      return exportBackup(db)
+    case 'backup.restore': {
+      const params = requireParams(request.params)
+      return restoreBackup(db, params.backup, params.mode)
+    }
   }
 }
 

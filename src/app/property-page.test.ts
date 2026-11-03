@@ -130,6 +130,7 @@ function makeReceipt(property: Property): ReceiptSummary {
     paymentPeriod: null,
     amountPaise: 100000,
     paymentMethod: 'cash',
+    status: 'issued',
     referenceNumber: null,
     description: null,
     notes: null,

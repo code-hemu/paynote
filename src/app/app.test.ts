@@ -14,6 +14,7 @@ interface Fixture {
   sectionTitle: FakeElement
   storageStatus: FakeElement
   storageBadge: FakeElement
+  storageWarning: FakeElement
   fields: Map<string, FakeElement>
   navLinks: FakeElement[]
 }
@@ -42,6 +43,7 @@ function createFixture(): Fixture {
   const sectionTitle = document.add(new FakeElement({ sectionTitle: '' }))
   const storageStatus = document.add(new FakeElement({ storageStatus: '' }))
   const storageBadge = document.add(new FakeElement({ storageBadge: '' }))
+  const storageWarning = document.add(new FakeElement({ storageWarning: '' }))
 
   document.add(new FakeElement({ appVersion: '' }))
   document.add(new FakeElement({ schemaVersion: '' }))
@@ -72,6 +74,7 @@ function createFixture(): Fixture {
     sectionTitle,
     storageStatus,
     storageBadge,
+    storageWarning,
     fields,
     navLinks,
   }
@@ -141,6 +144,39 @@ describe('App shell', () => {
     expect(
       fixture.navLinks.find((element) => element.getAttribute('href') === '#/customers')?.getAttribute('aria-current'),
     ).toBe('page')
+  })
+
+  it('warns when storage is nearly full', async () => {
+    const fixture = createFixture()
+    const storage = createStorage()
+    storage.getStorageHealth = async () => ({
+      ...(await createStorage().getStorageHealth()),
+      usageBytes: 9000,
+      quotaBytes: 10000,
+    })
+
+    const { app: currentApp } = mountApp(fixture, storage)
+
+    await currentApp.refreshStatus()
+
+    expect(fixture.storageWarning.hidden).toBe(false)
+    expect(fixture.storageWarning.textContent).toContain('90% full')
+  })
+
+  it('hides the storage warning when space is available', async () => {
+    const fixture = createFixture()
+    const storage = createStorage()
+    storage.getStorageHealth = async () => ({
+      ...(await createStorage().getStorageHealth()),
+      usageBytes: 1000,
+      quotaBytes: 10000,
+    })
+
+    const { app: currentApp } = mountApp(fixture, storage)
+
+    await currentApp.refreshStatus()
+
+    expect(fixture.storageWarning.hidden).toBe(true)
   })
 
   it('shows the not-found page for an unknown route', () => {

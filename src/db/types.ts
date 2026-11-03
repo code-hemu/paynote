@@ -1,3 +1,5 @@
+import type { ReceiptStatus } from '../domain/receipt-status.ts'
+
 export const PROPERTY_TYPES = ['house', 'godown', 'shop', 'other'] as const
 
 export type PropertyType = (typeof PROPERTY_TYPES)[number]
@@ -76,9 +78,24 @@ export interface ReceiptDetail {
   fieldValue: string
 }
 
-interface ReceiptDetailInput {
+export interface ReceiptDetailInput {
   fieldKey: string
   fieldValue: string
+}
+
+export interface ReceiptItem {
+  description: string
+  quantity: number
+  ratePaise: number
+  discountPaise: number
+  lineTotalPaise: number
+}
+
+export interface ReceiptItemInput {
+  description: string
+  quantity: number
+  ratePaise: number
+  discountPaise?: number
 }
 
 export interface ReceiptSummary {
@@ -93,6 +110,7 @@ export interface ReceiptSummary {
   paymentPeriod: string | null
   amountPaise: number
   paymentMethod: string
+  status: ReceiptStatus
   referenceNumber: string | null
   description: string | null
   notes: string | null
@@ -102,6 +120,7 @@ export interface ReceiptSummary {
 
 export interface Receipt extends ReceiptSummary {
   details: ReceiptDetail[]
+  items: ReceiptItem[]
 }
 
 export interface ReceiptInput {
@@ -115,7 +134,9 @@ export interface ReceiptInput {
   referenceNumber?: string | null
   description?: string | null
   notes?: string | null
+  status?: ReceiptStatus
   details?: ReceiptDetailInput[]
+  items?: ReceiptItemInput[]
 }
 
 export interface ReceiptListOptions extends PageOptions {
@@ -125,6 +146,9 @@ export interface ReceiptListOptions extends PageOptions {
   propertyId?: string | null
   fromDate?: string | null
   toDate?: string | null
+  status?: ReceiptStatus | null
+  minAmountPaise?: number | null
+  maxAmountPaise?: number | null
 }
 
 export interface CustomerDetail {
@@ -147,4 +171,17 @@ export interface PropertyDetail {
   totalPaise: number
   customers: PropertyCustomerSummary[]
   recentReceipts: ReceiptSummary[]
+}
+
+export interface ReceiptSequence {
+  year: number
+  prefix: string
+  nextNumber: number
+  updatedAt: string
+}
+
+export interface SettingRecord {
+  key: string
+  value: string
+  updatedAt: string
 }

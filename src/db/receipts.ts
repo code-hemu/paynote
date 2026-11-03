@@ -1,5 +1,11 @@
 import type { Database, SqlValue } from '@sqlite.org/sqlite-wasm'
 
+import { computeReceiptTotals } from '../domain/money.ts'
+import {
+  assertTransition,
+  type ReceiptStatus,
+} from '../domain/receipt-status.ts'
+
 import { writeAuditLog } from './audit.ts'
 import { DbNotFoundError, DbValidationError } from './errors.ts'
 import {
@@ -13,6 +19,7 @@ import type {
   Receipt,
   ReceiptDetail,
   ReceiptInput,
+  ReceiptItem,
   ReceiptListOptions,
   ReceiptSummary,
 } from './types.ts'
@@ -20,9 +27,12 @@ import {
   escapeLike,
   newId,
   normalizeDetails,
+  normalizeItems,
   normalizePage,
   normalizeSearch,
+  normalizeStatus,
   nowIso,
+  optionalAmount,
   optionalDate,
   optionalId,
   optionalText,
@@ -43,6 +53,7 @@ const RECEIPT_COLUMNS = `r.id,
   r.payment_period,
   r.amount_paise,
   r.payment_method,
+  r.status,
   r.reference_number,
   r.description,
   r.notes,
@@ -64,6 +75,15 @@ export function listReceipts(
   const propertyId = optionalId(options.propertyId, 'Property ID')
   const fromDate = optionalDate(options.fromDate, 'From date')
   const toDate = optionalDate(options.toDate, 'To date')
+  const status = options.status ? normalizeStatus(options.status) : null
+  const minAmountPaise = optionalAmount(
+    options.minAmountPaise,
+    'Minimum amount',
+  )
+  const maxAmountPaise = optionalAmount(
+    options.maxAmountPaise,
+    'Maximum amount',
+  )
   const conditions: string[] = []
   const bind: SqlValue[] = []
 
@@ -103,6 +123,21 @@ export function listReceipts(
   if (toDate) {
     conditions.push('r.receipt_date <= ?')
     bind.push(toDate)
+  }
+
+  if (status) {
+    conditions.push('r.status = ?')
+    bind.push(status)
+  }
+
+  if (minAmountPaise !== null) {
+    conditions.push('r.amount_paise >= ?')
+    bind.push(minAmountPaise)
+  }
+
+  if (maxAmountPaise !== null) {
+    conditions.push('r.amount_paise <= ?')
+    bind.push(maxAmountPaise)
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
@@ -147,10 +182,18 @@ export function getReceipt(db: Database, id: string): Receipt {
      ORDER BY id ASC`,
     [receiptId],
   )
+  const items = db.selectObjects(
+    `SELECT description, quantity, rate_paise, discount_paise, line_total_paise
+     FROM receipt_items
+     WHERE receipt_id = ?
+     ORDER BY sort_order ASC, id ASC`,
+    [receiptId],
+  )
 
   return {
     ...mapReceiptSummary(row),
     details: details.map(mapReceiptDetail),
+    items: items.map(mapReceiptItem),
   }
 }
 
@@ -176,12 +219,13 @@ export function createReceipt(db: Database, input: ReceiptInput): Receipt {
         payment_period,
         amount_paise,
         payment_method,
+        status,
         reference_number,
         description,
         notes,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       bind: [
         id,
         receiptNumber,
@@ -192,6 +236,7 @@ export function createReceipt(db: Database, input: ReceiptInput): Receipt {
         receipt.paymentPeriod,
         receipt.amountPaise,
         receipt.paymentMethod,
+        receipt.status,
         receipt.referenceNumber,
         receipt.description,
         receipt.notes,
@@ -201,6 +246,7 @@ export function createReceipt(db: Database, input: ReceiptInput): Receipt {
     })
 
     insertDetails(db, id, receipt.details)
+    insertItems(db, id, receipt.items)
     writeAuditLog(db, 'create', 'receipt', id, {
       receiptNumber,
       amountPaise: receipt.amountPaise,
@@ -216,10 +262,12 @@ export function updateReceipt(
   input: ReceiptInput,
 ): Receipt {
   const receiptId = requireId(id, 'Receipt ID')
-  const receipt = normalizeReceipt(input)
 
   return db.transaction('IMMEDIATE', () => {
     const existing = getReceipt(db, receiptId)
+    const receipt = normalizeReceipt(input, existing.status)
+
+    assertTransition(existing.status, receipt.status)
 
     assertReference(db, 'customers', receipt.customerId, 'Customer')
     assertReference(db, 'properties', receipt.propertyId, 'Property')
@@ -233,6 +281,7 @@ export function updateReceipt(
             payment_period = ?,
             amount_paise = ?,
             payment_method = ?,
+            status = ?,
             reference_number = ?,
             description = ?,
             notes = ?,
@@ -246,6 +295,7 @@ export function updateReceipt(
         receipt.paymentPeriod,
         receipt.amountPaise,
         receipt.paymentMethod,
+        receipt.status,
         receipt.referenceNumber,
         receipt.description,
         receipt.notes,
@@ -258,10 +308,16 @@ export function updateReceipt(
       sql: 'DELETE FROM receipt_details WHERE receipt_id = ?',
       bind: [receiptId],
     })
+    db.exec({
+      sql: 'DELETE FROM receipt_items WHERE receipt_id = ?',
+      bind: [receiptId],
+    })
     insertDetails(db, receiptId, receipt.details)
+    insertItems(db, receiptId, receipt.items)
     writeAuditLog(db, 'update', 'receipt', receiptId, {
       receiptNumber: existing.receiptNumber,
       amountPaise: receipt.amountPaise,
+      status: receipt.status,
     })
 
     return getReceipt(db, receiptId)
@@ -282,7 +338,10 @@ export function deleteReceipt(db: Database, id: string): void {
   })
 }
 
-function normalizeReceipt(input: ReceiptInput): {
+function normalizeReceipt(
+  input: ReceiptInput,
+  currentStatus?: ReceiptStatus,
+): {
   receiptType: string
   customerId: string | null
   propertyId: string | null
@@ -293,20 +352,34 @@ function normalizeReceipt(input: ReceiptInput): {
   referenceNumber: string | null
   description: string | null
   notes: string | null
+  status: ReceiptStatus
   details: ReceiptDetail[]
+  items: ReceiptItem[]
 } {
+  const items = normalizeItems(input.items)
+  const amountPaise =
+    items.length > 0
+      ? computeReceiptTotals(items).totalPaise
+      : requireNonNegativeInteger(input.amountPaise, 'Amount')
+  const status =
+    input.status === undefined || input.status === null
+      ? (currentStatus ?? 'issued')
+      : normalizeStatus(input.status)
+
   return {
     receiptType: requireText(input.receiptType, 'Receipt type', 80),
     customerId: optionalId(input.customerId, 'Customer ID'),
     propertyId: optionalId(input.propertyId, 'Property ID'),
     receiptDate: requireDate(input.receiptDate, 'Receipt date'),
     paymentPeriod: optionalText(input.paymentPeriod, 'Payment period', 100),
-    amountPaise: requireNonNegativeInteger(input.amountPaise, 'Amount'),
+    amountPaise,
     paymentMethod: requireText(input.paymentMethod, 'Payment method', 80),
     referenceNumber: optionalText(input.referenceNumber, 'Reference number', 100),
     description: optionalText(input.description, 'Description', 2000),
     notes: optionalText(input.notes, 'Notes', 2000),
+    status,
     details: normalizeDetails(input.details),
+    items,
   }
 }
 
@@ -374,6 +447,35 @@ function insertDetails(
   }
 }
 
+function insertItems(
+  db: Database,
+  receiptId: string,
+  items: ReceiptItem[],
+): void {
+  items.forEach((item, index) => {
+    db.exec({
+      sql: `INSERT INTO receipt_items (
+        receipt_id,
+        sort_order,
+        description,
+        quantity,
+        rate_paise,
+        discount_paise,
+        line_total_paise
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      bind: [
+        receiptId,
+        index,
+        item.description,
+        item.quantity,
+        item.ratePaise,
+        item.discountPaise,
+        item.lineTotalPaise,
+      ],
+    })
+  })
+}
+
 function mapReceiptSummary(row: Record<string, SqlValue>): ReceiptSummary {
   return {
     id: rowText(row, 'id'),
@@ -387,6 +489,7 @@ function mapReceiptSummary(row: Record<string, SqlValue>): ReceiptSummary {
     paymentPeriod: rowNullableText(row, 'payment_period'),
     amountPaise: rowNumber(row, 'amount_paise'),
     paymentMethod: rowText(row, 'payment_method'),
+    status: normalizeStatus(rowNullableText(row, 'status') ?? 'issued'),
     referenceNumber: rowNullableText(row, 'reference_number'),
     description: rowNullableText(row, 'description'),
     notes: rowNullableText(row, 'notes'),
@@ -399,5 +502,15 @@ function mapReceiptDetail(row: Record<string, SqlValue>): ReceiptDetail {
   return {
     fieldKey: rowText(row, 'field_key'),
     fieldValue: rowText(row, 'field_value'),
+  }
+}
+
+function mapReceiptItem(row: Record<string, SqlValue>): ReceiptItem {
+  return {
+    description: rowText(row, 'description'),
+    quantity: rowNumber(row, 'quantity'),
+    ratePaise: rowNumber(row, 'rate_paise'),
+    discountPaise: rowNumber(row, 'discount_paise'),
+    lineTotalPaise: rowNumber(row, 'line_total_paise'),
   }
 }

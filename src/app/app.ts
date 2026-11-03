@@ -9,6 +9,7 @@ import { formatBytes, formatSchemaVersion } from '../utils/format.ts'
 import { findNavItem, normalizePath } from './navigation.ts'
 
 const REFRESH_INTERVAL_MS = 30_000
+const LOW_SPACE_RATIO = 0.85
 
 export interface AppStorage {
   getAppInfo(): AppInfo
@@ -41,6 +42,7 @@ export function createApp(
   const errorPanel = doc.querySelector<HTMLElement>('[data-dashboard-error]')
   const errorMessage = doc.querySelector<HTMLElement>('[data-error-message]')
   const retryButton = doc.querySelector<HTMLButtonElement>('[data-retry]')
+  const storageWarning = doc.querySelector<HTMLElement>('[data-storage-warning]')
 
   const info = storage.getAppInfo()
   let loaded = false
@@ -61,6 +63,7 @@ export function createApp(
     const path = normalizePath(value)
     const page =
       pages.find((element) => element.dataset.route === path) ??
+      pages.find((element) => element.dataset.routeAlias === path) ??
       pages.find((element) => element.dataset.route === '*')
 
     for (const element of pages) {
@@ -118,6 +121,29 @@ export function createApp(
     }
   }
 
+  function renderStorageWarning(health: StorageHealth) {
+    if (!storageWarning) {
+      return
+    }
+
+    const quota = health.quotaBytes
+
+    if (!health.ok || typeof quota !== 'number' || quota <= 0) {
+      storageWarning.hidden = true
+      return
+    }
+
+    const ratio = health.usageBytes / quota
+
+    if (ratio < LOW_SPACE_RATIO) {
+      storageWarning.hidden = true
+      return
+    }
+
+    storageWarning.textContent = `Storage is ${Math.round(ratio * 100)}% full. Export a backup and remove old receipts to free space.`
+    storageWarning.hidden = false
+  }
+
   function renderHealth(health: StorageHealth) {
     loaded = true
 
@@ -155,6 +181,8 @@ export function createApp(
     if (schemaBadge) {
       schemaBadge.textContent = formatSchemaVersion(health.schemaVersion)
     }
+
+    renderStorageWarning(health)
   }
 
   function renderError(error: unknown) {
@@ -173,6 +201,10 @@ export function createApp(
     if (storageBadge) {
       storageBadge.textContent = 'Unavailable'
       storageBadge.className = 'badge badge-danger'
+    }
+
+    if (storageWarning) {
+      storageWarning.hidden = true
     }
   }
 

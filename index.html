@@ -2,7 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    />
     <link rel="icon" type="image/svg+xml" href="./public/favicon.svg" />
+    <link rel="apple-touch-icon" href="./pwa-icon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f766e" />
     <meta
@@ -13,6 +19,19 @@
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
+    <div class="global-error" data-global-error role="alert" hidden>
+      <svg class="icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+      <p data-global-error-message>Something unexpected happened.</p>
+      <div class="global-error-actions">
+        <button class="button button-small button-secondary" type="button" data-global-error-reload>
+          Reload
+        </button>
+        <button class="button button-small button-secondary" type="button" data-global-error-dismiss>
+          Dismiss
+        </button>
+      </div>
+    </div>
+
     <svg class="svg-sprite" aria-hidden="true">
       <defs>
         <symbol id="icon-receipt" viewBox="0 0 24 24">
@@ -192,6 +211,94 @@
               </div>
             </div>
 
+            <div data-dashboard>
+              <p class="list-status" data-dashboard-status aria-live="polite">
+                Loading dashboard…
+              </p>
+
+              <div class="page-actions dashboard-actions">
+                <button class="button button-primary" type="button" data-dashboard-new>
+                  <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+                  New receipt
+                </button>
+                <a class="button button-secondary" href="#/receipts">View receipt history</a>
+                <a class="button button-secondary" href="#/reports">Open reports</a>
+              </div>
+
+              <div class="stat-grid stat-grid-wide">
+                <div class="stat">
+                  <span class="stat-value" data-dashboard-today-total>₹0.00</span>
+                  <span class="stat-label">Today</span>
+                  <span class="stat-detail" data-dashboard-today-count>0 receipts</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-dashboard-month-total>₹0.00</span>
+                  <span class="stat-label">This month</span>
+                  <span class="stat-detail" data-dashboard-month-count>0 receipts</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-dashboard-year-total>₹0.00</span>
+                  <span class="stat-label">This year</span>
+                  <span class="stat-detail" data-dashboard-year-count>0 receipts</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-dashboard-all-total>₹0.00</span>
+                  <span class="stat-label">All time</span>
+                  <span class="stat-detail" data-dashboard-all-count>0 receipts</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-dashboard-average>₹0.00</span>
+                  <span class="stat-label">Average receipt</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-dashboard-cancelled>0</span>
+                  <span class="stat-label">Cancelled receipts</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Recent activity</h2>
+                    <p class="card-description">The latest receipts saved in this browser.</p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true"><use href="#icon-history"></use></svg>
+                </div>
+                <div class="card-content">
+                  <div class="table-scroll" data-dashboard-recent-table>
+                    <table class="table">
+                      <caption class="sr-only">Recent receipts</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Number</th>
+                          <th scope="col">Date</th>
+                          <th scope="col">Customer</th>
+                          <th scope="col">Category</th>
+                          <th scope="col">Amount</th>
+                          <th scope="col">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody data-dashboard-recent></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-dashboard-recent-empty hidden>
+                    No receipts yet. Create your first receipt to see recent activity.
+                  </p>
+                </div>
+              </div>
+
+              <div class="card error-card" data-dashboard-error-panel role="alert" hidden>
+                <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                <div>
+                  <h2 class="card-title">Could not load dashboard</h2>
+                  <p class="card-description" data-dashboard-error-message></p>
+                  <button class="button button-secondary" type="button" data-dashboard-retry>
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="grid">
               <section class="card" aria-labelledby="application-title">
                 <div class="card-header">
@@ -234,6 +341,7 @@
                   </svg>
                 </div>
                 <div class="card-content">
+                  <p class="notice notice-warning" data-storage-warning role="alert" hidden></p>
                   <dl class="info-list">
                     <div class="info-row">
                       <dt>Status</dt>
@@ -335,52 +443,510 @@
 
           <section
             class="page"
-            id="page-new-receipt"
-            data-route="/receipts/new"
-            aria-labelledby="new-receipt-title"
-            hidden
-          >
-            <div class="page-header">
-              <div>
-                <h1 class="page-title" id="new-receipt-title">New Receipt</h1>
-                <p class="page-description">Create and save a new payment receipt.</p>
-              </div>
-            </div>
-            <div class="empty-state">
-              <span class="empty-icon">
-                <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
-              </span>
-              <h2>Planned for Phase 3</h2>
-              <p>
-                The shared receipt engine, category forms, validation, and transaction-safe
-                numbering arrive in Phase 3.
-              </p>
-            </div>
-          </section>
-
-          <section
-            class="page"
             id="page-receipts"
             data-route="/receipts"
+            data-route-alias="/receipts/new"
             aria-labelledby="receipts-title"
             hidden
           >
             <div class="page-header">
               <div>
-                <h1 class="page-title" id="receipts-title">Receipt History</h1>
-                <p class="page-description">Search, filter, and review saved receipts.</p>
+                <h1 class="page-title" id="receipts-title">Receipts</h1>
+                <p class="page-description">
+                  Create receipts, search your history, print, and update payment status.
+                </p>
+              </div>
+              <div class="page-actions">
+                <button class="button button-primary" type="button" data-receipt-add>
+                  <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+                  New receipt
+                </button>
               </div>
             </div>
-            <div class="empty-state">
-              <span class="empty-icon">
-                <svg class="icon" aria-hidden="true"><use href="#icon-history"></use></svg>
-              </span>
-              <h2>Planned for Phase 3</h2>
-              <p>
-                Receipt search, filters, sorting, pagination, and open/edit actions arrive with the
-                receipt engine.
-              </p>
+
+            <p class="notice" data-receipt-notice role="status" aria-live="polite" hidden></p>
+
+            <div class="card form-card" data-receipt-form-panel hidden>
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title" data-receipt-form-title>New receipt</h2>
+                  <p class="card-description">
+                    The receipt number is assigned automatically when you save.
+                  </p>
+                </div>
+              </div>
+              <p class="form-notice" data-receipt-form-notice role="status" hidden></p>
+              <form class="form" data-receipt-form novalidate>
+                <div class="form-grid">
+                  <label class="field">
+                    <span class="field-label">Category <span class="required">*</span></span>
+                    <select class="input" name="receiptType" data-receipt-input="receiptType">
+                      <option value="rent">Rent</option>
+                      <option value="deposit">Deposit</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="utilities">Utilities</option>
+                      <option value="purchase">Purchase</option>
+                      <option value="sale">Sale</option>
+                      <option value="service">Service</option>
+                      <option value="salary">Salary</option>
+                      <option value="commission">Commission</option>
+                      <option value="loan">Loan</option>
+                      <option value="donation">Donation</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <span class="field-error" data-receipt-field-error="receiptType" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Status</span>
+                    <select class="input" name="status" data-receipt-input="status">
+                      <option value="draft">Draft</option>
+                      <option value="issued" selected>Issued</option>
+                      <option value="paid">Paid</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                    <span class="field-error" data-receipt-field-error="status" hidden></span>
+                  </label>
+
+                  <div class="field">
+                    <span class="field-label">Customer</span>
+                    <div class="input-row">
+                      <select class="input" name="customerId" data-receipt-input="customerId">
+                        <option value="">No customer</option>
+                      </select>
+                      <button
+                        class="button button-small button-secondary"
+                        type="button"
+                        data-receipt-customer-new
+                      >
+                        New
+                      </button>
+                    </div>
+                    <span class="field-error" data-receipt-field-error="customerId" hidden></span>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">Property</span>
+                    <div class="input-row">
+                      <select class="input" name="propertyId" data-receipt-input="propertyId">
+                        <option value="">No property</option>
+                      </select>
+                      <button
+                        class="button button-small button-secondary"
+                        type="button"
+                        data-receipt-property-new
+                      >
+                        New
+                      </button>
+                    </div>
+                    <span class="field-error" data-receipt-field-error="propertyId" hidden></span>
+                  </div>
+
+                  <div class="card inset-card span-2" data-receipt-customer-panel hidden>
+                    <div class="form-grid">
+                      <label class="field">
+                        <span class="field-label">Customer name <span class="required">*</span></span>
+                        <input class="input" type="text" maxlength="200" data-receipt-customer-name />
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Phone</span>
+                        <input class="input" type="tel" maxlength="40" data-receipt-customer-phone />
+                      </label>
+                    </div>
+                    <p class="form-error" data-receipt-customer-error role="alert" hidden></p>
+                    <div class="form-actions">
+                      <button class="button button-small button-primary" type="button" data-receipt-customer-save>
+                        Add customer
+                      </button>
+                      <button class="button button-small button-secondary" type="button" data-receipt-customer-cancel>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="card inset-card span-2" data-receipt-property-panel hidden>
+                    <div class="form-grid">
+                      <label class="field">
+                        <span class="field-label">Property name <span class="required">*</span></span>
+                        <input class="input" type="text" maxlength="200" data-receipt-property-name />
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Property type</span>
+                        <select class="input" data-receipt-property-type>
+                          <option value="house">House</option>
+                          <option value="godown">Godown</option>
+                          <option value="shop">Shop</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </label>
+                    </div>
+                    <p class="form-error" data-receipt-property-error role="alert" hidden></p>
+                    <div class="form-actions">
+                      <button class="button button-small button-primary" type="button" data-receipt-property-save>
+                        Add property
+                      </button>
+                      <button class="button button-small button-secondary" type="button" data-receipt-property-cancel>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+
+                  <label class="field">
+                    <span class="field-label">Receipt date <span class="required">*</span></span>
+                    <input class="input" type="date" name="receiptDate" data-receipt-input="receiptDate" />
+                    <span class="field-error" data-receipt-field-error="receiptDate" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Payment method <span class="required">*</span></span>
+                    <select class="input" name="paymentMethod" data-receipt-input="paymentMethod">
+                      <option value="cash">Cash</option>
+                      <option value="upi">UPI</option>
+                      <option value="bank-transfer">Bank transfer</option>
+                      <option value="cheque">Cheque</option>
+                      <option value="card">Card</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <span class="field-error" data-receipt-field-error="paymentMethod" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Amount (₹) <span class="required">*</span></span>
+                    <input
+                      class="input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="amount"
+                      inputmode="decimal"
+                      placeholder="0.00"
+                      data-receipt-input="amount"
+                    />
+                    <span class="field-error" data-receipt-field-error="amount" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Reference number</span>
+                    <input
+                      class="input"
+                      type="text"
+                      maxlength="100"
+                      name="referenceNumber"
+                      data-receipt-input="referenceNumber"
+                    />
+                    <span class="field-error" data-receipt-field-error="referenceNumber" hidden></span>
+                  </label>
+                  <label class="field">
+                    <span class="field-label">Payment period</span>
+                    <input
+                      class="input"
+                      type="text"
+                      maxlength="100"
+                      placeholder="e.g. November 2026"
+                      name="paymentPeriod"
+                      data-receipt-input="paymentPeriod"
+                    />
+                    <span class="field-error" data-receipt-field-error="paymentPeriod" hidden></span>
+                  </label>
+                  <label class="field span-2">
+                    <span class="field-label">Description</span>
+                    <input
+                      class="input"
+                      type="text"
+                      maxlength="2000"
+                      name="description"
+                      data-receipt-input="description"
+                    />
+                    <span class="field-error" data-receipt-field-error="description" hidden></span>
+                  </label>
+                </div>
+
+                <div class="form-section">
+                  <h3 class="section-heading">Category details</h3>
+                  <div class="form-grid" data-receipt-details></div>
+                </div>
+
+                <div class="form-section">
+                  <div class="section-heading-row">
+                    <h3 class="section-heading">Line items</h3>
+                    <button class="button button-small button-secondary" type="button" data-receipt-add-item>
+                      Add item
+                    </button>
+                  </div>
+                  <p class="field-hint">
+                    Optional. When items are present, the receipt total is calculated from them and the amount field is locked.
+                  </p>
+                  <div class="line-items" data-receipt-items></div>
+                  <dl class="totals-list">
+                    <div class="info-row">
+                      <dt>Subtotal</dt>
+                      <dd data-receipt-subtotal>₹0.00</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Discount</dt>
+                      <dd data-receipt-discount>₹0.00</dd>
+                    </div>
+                    <div class="info-row totals-row">
+                      <dt>Total</dt>
+                      <dd data-receipt-total>₹0.00</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>In words</dt>
+                      <dd data-receipt-words>Zero rupees only</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                <label class="field">
+                  <span class="field-label">Notes</span>
+                  <textarea
+                    class="input input-textarea"
+                    rows="3"
+                    maxlength="2000"
+                    name="notes"
+                    data-receipt-input="notes"
+                  ></textarea>
+                  <span class="field-error" data-receipt-field-error="notes" hidden></span>
+                </label>
+
+                <p class="form-error" data-receipt-form-error role="alert" hidden></p>
+                <div class="form-actions">
+                  <button class="button button-primary" type="submit" data-receipt-save>
+                    Save receipt
+                  </button>
+                  <button class="button button-secondary" type="button" data-receipt-cancel>
+                    Cancel
+                  </button>
+                  <span class="draft-status" data-receipt-draft-status hidden></span>
+                </div>
+              </form>
             </div>
+
+            <div class="card" data-receipt-detail-panel hidden>
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title" data-receipt-detail-number tabindex="-1">Receipt</h2>
+                  <p class="card-description" data-receipt-detail-meta></p>
+                </div>
+                <div class="page-actions">
+                  <span class="badge badge-brand" data-receipt-detail-status>Issued</span>
+                  <button class="button button-small button-secondary" type="button" data-receipt-detail-edit>Edit</button>
+                  <button class="button button-small button-secondary" type="button" data-receipt-detail-duplicate>Duplicate</button>
+                  <button class="button button-small button-secondary" type="button" data-receipt-detail-print>Print / PDF</button>
+                  <button class="button button-small button-secondary" type="button" data-receipt-detail-delete>Delete</button>
+                  <button class="button button-small button-secondary" type="button" data-receipt-detail-close>Back to list</button>
+                </div>
+              </div>
+              <div class="card-content stack">
+                <div class="receipt-summary">
+                  <div>
+                    <span class="stat-label">Customer</span>
+                    <strong data-receipt-detail-customer>—</strong>
+                  </div>
+                  <div>
+                    <span class="stat-label">Property</span>
+                    <strong data-receipt-detail-property>—</strong>
+                  </div>
+                  <div>
+                    <span class="stat-label">Category</span>
+                    <strong data-receipt-detail-category>—</strong>
+                  </div>
+                  <div>
+                    <span class="stat-label">Total</span>
+                    <strong data-receipt-detail-amount>—</strong>
+                  </div>
+                </div>
+                <p class="amount-words" data-receipt-detail-words></p>
+                <div class="status-actions" data-receipt-status-actions></div>
+
+                <dl class="info-list" data-receipt-detail-info></dl>
+
+                <div data-receipt-detail-fields-section>
+                  <h3 class="section-heading">Category details</h3>
+                  <dl class="info-list" data-receipt-detail-fields></dl>
+                </div>
+
+                <div>
+                  <h3 class="section-heading">Line items</h3>
+                  <div class="table-scroll" data-receipt-detail-items-table>
+                    <table class="table">
+                      <caption class="sr-only">Receipt line items</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Description</th>
+                          <th scope="col">Qty</th>
+                          <th scope="col">Rate</th>
+                          <th scope="col">Discount</th>
+                          <th scope="col">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody data-receipt-detail-items></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-receipt-detail-items-empty hidden>
+                    This receipt uses a single entered amount and has no line items.
+                  </p>
+                </div>
+
+                <div data-receipt-detail-description-section>
+                  <h3 class="section-heading">Description</h3>
+                  <p data-receipt-detail-description></p>
+                </div>
+                <div data-receipt-detail-notes-section>
+                  <h3 class="section-heading">Notes</h3>
+                  <p data-receipt-detail-notes></p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="card error-card"
+              data-receipt-delete-panel
+              role="alertdialog"
+              aria-labelledby="receipt-delete-title"
+              hidden
+            >
+              <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+              <div>
+                <h2 class="card-title" id="receipt-delete-title">Delete receipt</h2>
+                <p class="card-description" data-receipt-delete-message></p>
+                <div class="form-actions">
+                  <button class="button button-danger" type="button" data-receipt-delete-confirm>
+                    Delete receipt
+                  </button>
+                  <button class="button button-secondary" type="button" data-receipt-delete-cancel>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div data-receipt-list>
+              <div class="list-toolbar list-toolbar-wrap" role="search">
+                <label class="field field-grow">
+                  <span class="field-label">Search receipts</span>
+                  <input
+                    class="input"
+                    type="search"
+                    name="receipt-search"
+                    placeholder="Number, customer, property, or description"
+                    autocomplete="off"
+                    spellcheck="false"
+                    data-receipt-search
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">Category</span>
+                  <select class="input" name="receipt-type" data-receipt-type>
+                    <option value="">All categories</option>
+                    <option value="rent">Rent</option>
+                    <option value="deposit">Deposit</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="utilities">Utilities</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="sale">Sale</option>
+                    <option value="service">Service</option>
+                    <option value="salary">Salary</option>
+                    <option value="commission">Commission</option>
+                    <option value="loan">Loan</option>
+                    <option value="donation">Donation</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Status</span>
+                  <select class="input" name="receipt-status" data-receipt-status>
+                    <option value="">All statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="issued">Issued</option>
+                    <option value="paid">Paid</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Customer</span>
+                  <select class="input" name="receipt-customer" data-receipt-customer>
+                    <option value="">All customers</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Property</span>
+                  <select class="input" name="receipt-property" data-receipt-property>
+                    <option value="">All properties</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">From</span>
+                  <input class="input" type="date" name="receipt-from" data-receipt-from />
+                </label>
+                <label class="field">
+                  <span class="field-label">To</span>
+                  <input class="input" type="date" name="receipt-to" data-receipt-to />
+                </label>
+                <div class="field field-actions">
+                  <button class="button button-small button-secondary" type="button" data-receipt-clear-filters>
+                    Clear filters
+                  </button>
+                  <button class="button button-small button-secondary" type="button" data-receipt-export>
+                    Export CSV
+                  </button>
+                </div>
+              </div>
+
+              <p class="list-status" data-receipt-list-status aria-live="polite">
+                Loading receipts…
+              </p>
+
+              <div class="card table-scroll" data-receipt-table hidden>
+                <table class="table">
+                  <caption class="sr-only">Receipt history</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Number</th>
+                      <th scope="col">Date</th>
+                      <th scope="col">Customer</th>
+                      <th scope="col">Property</th>
+                      <th scope="col">Category</th>
+                      <th scope="col">Amount</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody data-receipt-rows></tbody>
+                </table>
+              </div>
+
+              <div class="empty-state" data-receipt-empty hidden>
+                <span class="empty-icon">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-receipt"></use></svg>
+                </span>
+                <h2 data-receipt-empty-title>No receipts yet</h2>
+                <p data-receipt-empty-message>Create your first receipt to see it here.</p>
+                <button class="button button-primary" type="button" data-receipt-empty-add>
+                  Create your first receipt
+                </button>
+              </div>
+
+              <div class="card error-card" data-receipt-list-error role="alert" hidden>
+                <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                <div>
+                  <h2 class="card-title">Could not load receipts</h2>
+                  <p class="card-description" data-receipt-list-error-message>
+                    The receipt list could not be loaded.
+                  </p>
+                  <button class="button button-secondary" type="button" data-receipt-list-retry>
+                    Try again
+                  </button>
+                </div>
+              </div>
+
+              <nav class="pagination" data-receipt-pagination aria-label="Receipt pages" hidden>
+                <button class="button button-secondary" type="button" data-receipt-previous>
+                  Previous
+                </button>
+                <span class="pagination-status" data-receipt-page>Page 1</span>
+                <button class="button button-secondary" type="button" data-receipt-next>
+                  Next
+                </button>
+              </nav>
+            </div>
+
+            <div class="print-only" data-print-receipt aria-hidden="true"></div>
           </section>
 
           <section
@@ -991,16 +1557,177 @@
                   Review collections by period, category, customer, and property.
                 </p>
               </div>
+              <div class="page-actions">
+                <button class="button button-secondary" type="button" data-report-export>
+                  Export CSV
+                </button>
+                <button class="button button-secondary" type="button" data-report-print>
+                  Print / PDF
+                </button>
+              </div>
             </div>
-            <div class="empty-state">
-              <span class="empty-icon">
-                <svg class="icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
-              </span>
-              <h2>Planned for Phase 5</h2>
-              <p>
-                Daily, monthly, yearly, category, customer, property, and payment-method reports
-                arrive in Phase 5.
-              </p>
+
+            <div class="card form-card" data-reports>
+              <div class="list-toolbar list-toolbar-wrap" role="search">
+                <label class="field">
+                  <span class="field-label">Period</span>
+                  <select class="input" data-report-preset>
+                    <option value="today">Today</option>
+                    <option value="week">This week</option>
+                    <option value="month" selected>This month</option>
+                    <option value="year">This year</option>
+                    <option value="all">All time</option>
+                    <option value="custom">Custom range</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span class="field-label">From</span>
+                  <input class="input" type="date" data-report-from />
+                </label>
+                <label class="field">
+                  <span class="field-label">To</span>
+                  <input class="input" type="date" data-report-to />
+                </label>
+                <label class="field">
+                  <span class="field-label">Category</span>
+                  <select class="input" data-report-category></select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Status</span>
+                  <select class="input" data-report-status></select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Customer</span>
+                  <select class="input" data-report-customer></select>
+                </label>
+                <label class="field">
+                  <span class="field-label">Property</span>
+                  <select class="input" data-report-property></select>
+                </label>
+                <label class="field field-grow">
+                  <span class="field-label">Search</span>
+                  <input class="input" type="search" placeholder="Number, notes, customer" data-report-search />
+                </label>
+                <div class="field field-actions">
+                  <button class="button button-small button-primary" type="button" data-report-apply>
+                    Apply
+                  </button>
+                  <button class="button button-small button-secondary" type="button" data-report-clear>
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              <p class="list-status" data-report-status-line aria-live="polite">Loading report…</p>
+
+              <div class="stat-grid">
+                <div class="stat">
+                  <span class="stat-value" data-report-total>₹0.00</span>
+                  <span class="stat-label">Total collected</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-report-count>0</span>
+                  <span class="stat-label">Receipts</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-report-average>₹0.00</span>
+                  <span class="stat-label">Average receipt</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value" data-report-cancelled>0</span>
+                  <span class="stat-label">Cancelled receipts</span>
+                </div>
+              </div>
+
+              <div class="report-chart-card">
+                <h2 class="section-heading">Monthly trend</h2>
+                <div class="chart" data-report-chart role="img" aria-label="Monthly collections chart"></div>
+                <p class="list-status" data-report-chart-empty hidden>No collections in this range.</p>
+              </div>
+
+              <div class="report-grid">
+                <div class="report-block">
+                  <h2 class="section-heading">By day</h2>
+                  <div class="table-scroll" data-report-table="day">
+                    <table class="table">
+                      <thead><tr><th scope="col">Day</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+                      <tbody data-report-rows="day"></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-report-empty="day" hidden>No daily activity.</p>
+                </div>
+                <div class="report-block">
+                  <h2 class="section-heading">By month</h2>
+                  <div class="table-scroll" data-report-table="month">
+                    <table class="table">
+                      <thead><tr><th scope="col">Month</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+                      <tbody data-report-rows="month"></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-report-empty="month" hidden>No monthly activity.</p>
+                </div>
+                <div class="report-block">
+                  <h2 class="section-heading">By year</h2>
+                  <div class="table-scroll" data-report-table="year">
+                    <table class="table">
+                      <thead><tr><th scope="col">Year</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+                      <tbody data-report-rows="year"></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-report-empty="year" hidden>No yearly activity.</p>
+                </div>
+                <div class="report-block">
+                  <h2 class="section-heading">By category</h2>
+                  <div class="table-scroll" data-report-table="category">
+                    <table class="table">
+                      <thead><tr><th scope="col">Category</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+                      <tbody data-report-rows="category"></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-report-empty="category" hidden>No category activity.</p>
+                </div>
+                <div class="report-block">
+                  <h2 class="section-heading">By payment method</h2>
+                  <div class="table-scroll" data-report-table="payment">
+                    <table class="table">
+                      <thead><tr><th scope="col">Method</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+                      <tbody data-report-rows="payment"></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-report-empty="payment" hidden>No payment activity.</p>
+                </div>
+                <div class="report-block">
+                  <h2 class="section-heading">By customer</h2>
+                  <div class="table-scroll" data-report-table="customer">
+                    <table class="table">
+                      <thead><tr><th scope="col">Customer</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+                      <tbody data-report-rows="customer"></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-report-empty="customer" hidden>No customer activity.</p>
+                </div>
+                <div class="report-block">
+                  <h2 class="section-heading">By property</h2>
+                  <div class="table-scroll" data-report-table="property">
+                    <table class="table">
+                      <thead><tr><th scope="col">Property</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Share</th></tr></thead>
+                      <tbody data-report-rows="property"></tbody>
+                    </table>
+                  </div>
+                  <p class="list-status" data-report-empty="property" hidden>No property activity.</p>
+                </div>
+              </div>
+
+              <div class="card error-card" data-report-error role="alert" hidden>
+                <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                <div>
+                  <h2 class="card-title">Could not load report</h2>
+                  <p class="card-description" data-report-error-message></p>
+                  <button class="button button-secondary" type="button" data-report-retry>Try again</button>
+                </div>
+              </div>
+
+              <div class="print-only" data-print-report aria-hidden="true"></div>
             </div>
           </section>
 
@@ -1017,14 +1744,92 @@
                 <p class="page-description">Protect your records with local backups.</p>
               </div>
             </div>
-            <div class="empty-state">
-              <span class="empty-icon">
-                <svg class="icon" aria-hidden="true"><use href="#icon-database"></use></svg>
-              </span>
-              <h2>Planned for Phase 6</h2>
-              <p>
-                Validated database backups, safe restore, and CSV receipt export arrive in Phase 6.
-              </p>
+
+            <div class="grid" data-backup>
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Export backup</h2>
+                    <p class="card-description">
+                      Downloads a JSON file with customers, properties, receipts, line items, settings, numbering, and a receipt CSV.
+                    </p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true"><use href="#icon-database"></use></svg>
+                </div>
+                <div class="card-content stack">
+                  <p class="list-status" data-backup-export-status>
+                    Export includes customers, properties, receipts, settings, and receipt numbering.
+                  </p>
+                  <div class="form-actions">
+                    <button class="button button-primary" type="button" data-backup-export>
+                      Download backup
+                    </button>
+                    <button class="button button-secondary" type="button" data-backup-csv>
+                      Export receipt CSV
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Restore backup</h2>
+                    <p class="card-description">
+                      Select a PayNote JSON backup. Files are validated before anything is changed.
+                    </p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true"><use href="#icon-shield"></use></svg>
+                </div>
+                <div class="card-content stack">
+                  <label class="file-drop" data-backup-dropzone>
+                    <input type="file" accept="application/json,.json" data-backup-file hidden />
+                    <svg class="icon" aria-hidden="true"><use href="#icon-hard-drive"></use></svg>
+                    <span data-backup-file-label>Choose a backup file</span>
+                    <small>or drop a .json backup here</small>
+                  </label>
+
+                  <div class="card inset-card" data-backup-preview hidden>
+                    <h3 class="card-title" data-backup-preview-name>Backup file</h3>
+                    <p class="card-description" data-backup-preview-meta></p>
+                    <div class="stat-grid" data-backup-preview-counts></div>
+                  </div>
+
+                  <fieldset class="field">
+                    <legend class="field-label">Restore mode</legend>
+                    <label class="radio-row">
+                      <input type="radio" name="backup-mode" value="merge" data-backup-mode checked />
+                      <span><strong>Merge</strong> — update matching IDs and add new records.</span>
+                    </label>
+                    <label class="radio-row">
+                      <input type="radio" name="backup-mode" value="replace" data-backup-mode />
+                      <span><strong>Replace</strong> — delete all current records first. This cannot be undone.</span>
+                    </label>
+                  </fieldset>
+
+                  <p class="form-error" data-backup-error role="alert" hidden></p>
+                  <p class="notice" data-backup-notice role="status" aria-live="polite" hidden></p>
+                  <p class="list-status" data-backup-status-line>
+                    No backup selected.
+                  </p>
+                  <div class="form-actions">
+                    <button class="button button-danger" type="button" data-backup-restore disabled>
+                      Restore backup
+                    </button>
+                    <button class="button button-secondary" type="button" data-backup-clear>
+                      Clear selection
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card span-2 error-card" data-backup-error-panel hidden>
+                <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                <div>
+                  <h2 class="card-title">Backup action failed</h2>
+                  <p class="card-description" data-backup-error-message></p>
+                </div>
+              </section>
             </div>
           </section>
 
@@ -1039,19 +1844,104 @@
               <div>
                 <h1 class="page-title" id="settings-title">Settings</h1>
                 <p class="page-description">
-                  Configure business details, receipt preferences, and application options.
+                  Configure business details, receipt preferences, and appearance.
                 </p>
               </div>
             </div>
-            <div class="empty-state">
-              <span class="empty-icon">
-                <svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg>
-              </span>
-              <h2>Planned for a later phase</h2>
-              <p>
-                Business information, receipt numbering, theme, backup location, and other
-                preferences will be managed here.
-              </p>
+
+            <div class="grid" data-settings>
+              <section class="card span-2">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Business profile</h2>
+                    <p class="card-description">
+                      These details appear on printed receipts. Everything is stored only in this browser.
+                    </p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true"><use href="#icon-settings"></use></svg>
+                </div>
+                <div class="card-content">
+                  <form class="form" data-settings-form novalidate>
+                    <div class="form-grid">
+                      <label class="field">
+                        <span class="field-label">Business name</span>
+                        <input class="input" type="text" maxlength="200" data-settings-input="businessName" />
+                        <span class="field-error" data-settings-field-error="businessName" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Phone</span>
+                        <input class="input" type="tel" maxlength="40" data-settings-input="businessPhone" />
+                        <span class="field-error" data-settings-field-error="businessPhone" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Email</span>
+                        <input class="input" type="email" maxlength="200" data-settings-input="businessEmail" />
+                        <span class="field-error" data-settings-field-error="businessEmail" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Receipt prefix</span>
+                        <input class="input" type="text" maxlength="10" data-settings-input="receiptPrefix" />
+                        <span class="field-error" data-settings-field-error="receiptPrefix" hidden></span>
+                      </label>
+                      <label class="field span-2">
+                        <span class="field-label">Address</span>
+                        <input class="input" type="text" maxlength="500" data-settings-input="businessAddress" />
+                        <span class="field-error" data-settings-field-error="businessAddress" hidden></span>
+                      </label>
+                      <label class="field span-2">
+                        <span class="field-label">Logo URL</span>
+                        <input class="input" type="url" maxlength="2000" placeholder="https://… or data:image/…" data-settings-input="businessLogo" />
+                        <span class="field-error" data-settings-field-error="businessLogo" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Receipt timezone</span>
+                        <input class="input" type="text" maxlength="100" data-settings-input="receiptTimezone" />
+                        <span class="field-error" data-settings-field-error="receiptTimezone" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Theme</span>
+                        <select class="input" data-settings-theme>
+                          <option value="system">Follow system</option>
+                          <option value="light">Light</option>
+                          <option value="dark">Dark</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <p class="form-error" data-settings-error role="alert" hidden></p>
+                    <p class="notice" data-settings-notice role="status" aria-live="polite" hidden></p>
+                    <div class="form-actions">
+                      <button class="button button-primary" type="submit" data-settings-save>
+                        Save settings
+                      </button>
+                      <button class="button button-secondary" type="button" data-settings-reset>
+                        Load defaults
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </section>
+
+              <section class="card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Receipt preview</h2>
+                    <p class="card-description">A quick preview of your receipt header.</p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true"><use href="#icon-receipt"></use></svg>
+                </div>
+                <div class="card-content">
+                  <div class="business-preview">
+                    <div class="business-preview-logo" data-settings-logo-preview>
+                      <img alt="" data-settings-logo-image hidden />
+                      <svg class="icon" aria-hidden="true"><use href="#icon-building"></use></svg>
+                    </div>
+                    <strong data-settings-preview-name>Your business name</strong>
+                    <span data-settings-preview-address>Business address</span>
+                    <span data-settings-preview-phone>Phone number</span>
+                  </div>
+                </div>
+              </section>
             </div>
           </section>
 

@@ -16,6 +16,7 @@ const REQUIRED_TABLES = [
   'properties',
   'receipts',
   'receipt_details',
+  'receipt_items',
   'receipt_sequences',
   'audit_logs',
   'schema_migrations',
@@ -117,6 +118,27 @@ const MIGRATIONS: readonly Migration[] = [
           ${NOW}
         )
         ON CONFLICT(year) DO NOTHING`,
+    ],
+  },
+  {
+    version: 2,
+    name: 'receipt_status_and_items',
+    statements: [
+      `ALTER TABLE receipts ADD COLUMN status TEXT NOT NULL DEFAULT 'issued'
+        CHECK (status IN ('draft', 'issued', 'paid', 'cancelled'))`,
+      'CREATE INDEX idx_receipts_status ON receipts(status)',
+      `CREATE TABLE receipt_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        receipt_id TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        description TEXT NOT NULL,
+        quantity REAL NOT NULL CHECK (quantity > 0),
+        rate_paise INTEGER NOT NULL CHECK (rate_paise >= 0),
+        discount_paise INTEGER NOT NULL DEFAULT 0 CHECK (discount_paise >= 0),
+        line_total_paise INTEGER NOT NULL CHECK (line_total_paise >= 0),
+        FOREIGN KEY (receipt_id) REFERENCES receipts(id) ON DELETE CASCADE
+      )`,
+      'CREATE INDEX idx_receipt_items_receipt_id ON receipt_items(receipt_id)',
     ],
   },
 ]
