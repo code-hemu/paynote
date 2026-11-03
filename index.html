@@ -398,14 +398,83 @@
                 </p>
               </div>
             </div>
-            <div class="empty-state">
-              <span class="empty-icon">
-                <svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg>
-              </span>
-              <h2>Planned for Phase 2</h2>
-              <p>
-                Customer records, search, receipt history, and payment totals arrive in Phase 2.
+            <div data-customer-list>
+              <div class="list-toolbar" role="search">
+                <label class="field field-grow">
+                  <span class="field-label">Search customers</span>
+                  <input
+                    class="input"
+                    type="search"
+                    name="customer-search"
+                    placeholder="Name, phone, or email"
+                    autocomplete="off"
+                    spellcheck="false"
+                    data-customer-search
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">Sort by</span>
+                  <select class="input" name="customer-sort" data-customer-sort>
+                    <option value="name:asc">Name A–Z</option>
+                    <option value="name:desc">Name Z–A</option>
+                    <option value="updatedAt:desc">Recently updated</option>
+                    <option value="updatedAt:asc">Oldest updated</option>
+                    <option value="createdAt:desc">Newest added</option>
+                    <option value="createdAt:asc">Oldest added</option>
+                  </select>
+                </label>
+              </div>
+
+              <p class="list-status" data-customer-status aria-live="polite">
+                Loading customers…
               </p>
+
+              <div class="card table-scroll" data-customer-table hidden>
+                <table class="table">
+                  <caption class="sr-only">Customers</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Customer</th>
+                      <th scope="col">Phone</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">Address</th>
+                      <th scope="col">Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody data-customer-rows></tbody>
+                </table>
+              </div>
+
+              <div class="empty-state" data-customer-empty hidden>
+                <span class="empty-icon">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg>
+                </span>
+                <h2 data-customer-empty-title>No customers yet</h2>
+                <p data-customer-empty-message>Customer records will appear here once you add them.</p>
+              </div>
+
+              <div class="card error-card" data-customer-error role="alert" hidden>
+                <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                <div>
+                  <h2 class="card-title">Could not load customers</h2>
+                  <p class="card-description" data-customer-error-message>
+                    The customer list could not be loaded.
+                  </p>
+                  <button class="button button-secondary" type="button" data-customer-retry>
+                    Try again
+                  </button>
+                </div>
+              </div>
+
+              <nav class="pagination" data-customer-pagination aria-label="Customer pages" hidden>
+                <button class="button button-secondary" type="button" data-customer-previous>
+                  Previous
+                </button>
+                <span class="pagination-status" data-customer-page>Page 1</span>
+                <button class="button button-secondary" type="button" data-customer-next>
+                  Next
+                </button>
+              </nav>
             </div>
           </section>
 
