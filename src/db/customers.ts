@@ -94,10 +94,35 @@ export function getCustomer(db: Database, id: string): Customer {
   return mapCustomer(row)
 }
 
+export function isCustomerNameTaken(
+  db: Database,
+  name: string,
+  excludeId?: string | null,
+): boolean {
+  const fullName = requireText(name, 'Customer name')
+  const row = excludeId
+    ? db.selectValue(
+        'SELECT 1 FROM customers WHERE full_name = ? COLLATE NOCASE AND id <> ?',
+        [fullName, excludeId],
+      )
+    : db.selectValue(
+        'SELECT 1 FROM customers WHERE full_name = ? COLLATE NOCASE',
+        [fullName],
+      )
+
+  return row !== undefined && row !== null
+}
+
 export function createCustomer(db: Database, input: CustomerInput): Customer {
   const customer = normalizeCustomer(input)
 
   return db.transaction('IMMEDIATE', () => {
+    if (isCustomerNameTaken(db, customer.fullName)) {
+      throw new DbConflictError(
+        `A customer named "${customer.fullName}" already exists.`,
+      )
+    }
+
     const id = newId()
     const now = nowIso()
 
@@ -142,6 +167,12 @@ export function updateCustomer(
 
   return db.transaction('IMMEDIATE', () => {
     getCustomer(db, customerId)
+
+    if (isCustomerNameTaken(db, customer.fullName, customerId)) {
+      throw new DbConflictError(
+        `A customer named "${customer.fullName}" already exists.`,
+      )
+    }
 
     db.exec({
       sql: `UPDATE customers

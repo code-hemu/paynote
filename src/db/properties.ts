@@ -1,13 +1,18 @@
 import type { Database, SqlValue } from '@sqlite.org/sqlite-wasm'
 
 import { writeAuditLog } from './audit.ts'
-import { DbConflictError, DbNotFoundError } from './errors.ts'
+import {
+  DbConflictError,
+  DbNotFoundError,
+  DbValidationError,
+} from './errors.ts'
 import { rowNullableText, rowText, toNumber } from './rows.ts'
 import type {
   ListResult,
   Property,
   PropertyInput,
   PropertyListOptions,
+  PropertySortField,
   PropertyType,
 } from './types.ts'
 import {
@@ -15,6 +20,7 @@ import {
   newId,
   normalizePage,
   normalizeSearch,
+  normalizeSortDirection,
   nowIso,
   optionalPropertyType,
   optionalText,
@@ -25,6 +31,12 @@ import {
 
 const PROPERTY_COLUMNS = `id, name, property_type, property_number, address, description, notes, created_at, updated_at`
 
+const PROPERTY_SORT_COLUMNS: Record<PropertySortField, string> = {
+  name: 'name COLLATE NOCASE',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+}
+
 export function listProperties(
   db: Database,
   options: PropertyListOptions = {},
@@ -32,6 +44,9 @@ export function listProperties(
   const { limit, offset } = normalizePage(options)
   const search = normalizeSearch(options.search)
   const propertyType = optionalPropertyType(options.propertyType)
+  const sortBy = normalizePropertySortField(options.sortBy)
+  const sortDirection = normalizeSortDirection(options.sortDirection)
+  const sortColumn = PROPERTY_SORT_COLUMNS[sortBy]
   const conditions: string[] = []
   const bind: SqlValue[] = []
 
@@ -61,7 +76,7 @@ export function listProperties(
     `SELECT ${PROPERTY_COLUMNS}
      FROM properties
      ${where}
-     ORDER BY name COLLATE NOCASE ASC, created_at ASC
+     ORDER BY ${sortColumn} ${sortDirection.toUpperCase()}, name COLLATE NOCASE ASC
      LIMIT ? OFFSET ?`,
     [...bind, limit, offset],
   )
@@ -191,6 +206,18 @@ export function deleteProperty(db: Database, id: string): void {
       name: property.name,
     })
   })
+}
+
+function normalizePropertySortField(value: unknown): PropertySortField {
+  if (value === undefined || value === null || value === '') {
+    return 'name'
+  }
+
+  if (value === 'name' || value === 'createdAt' || value === 'updatedAt') {
+    return value
+  }
+
+  throw new DbValidationError('Sort field must be name, createdAt, or updatedAt.')
 }
 
 function normalizeProperty(input: PropertyInput): {

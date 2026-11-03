@@ -4,6 +4,7 @@ export type PropertyType = (typeof PROPERTY_TYPES)[number]
 
 export type SortDirection = 'asc' | 'desc'
 export type CustomerSortField = 'name' | 'createdAt' | 'updatedAt'
+export type PropertySortField = 'name' | 'createdAt' | 'updatedAt'
 
 export interface PageOptions {
   limit?: number
@@ -66,6 +67,8 @@ export interface PropertyInput {
 export interface PropertyListOptions extends PageOptions {
   search?: string | null
   propertyType?: PropertyType | null
+  sortBy?: PropertySortField | null
+  sortDirection?: SortDirection | null
 }
 
 export interface ReceiptDetail {
@@ -122,4 +125,26 @@ export interface ReceiptListOptions extends PageOptions {
   propertyId?: string | null
   fromDate?: string | null
   toDate?: string | null
+}
+
+export interface CustomerDetail {
+  customer: Customer
+  receiptCount: number
+  totalPaise: number
+  recentReceipts: ReceiptSummary[]
+}
+
+export interface PropertyCustomerSummary {
+  id: string
+  fullName: string
+  receiptCount: number
+  totalPaise: number
+}
+
+export interface PropertyDetail {
+  property: Property
+  receiptCount: number
+  totalPaise: number
+  customers: PropertyCustomerSummary[]
+  recentReceipts: ReceiptSummary[]
 }
