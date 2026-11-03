@@ -1,0 +1,11 @@
+{
+  "include": ["src/**/*.{js,jsx,ts,tsx}"],
+  "exclude": ["src/**/*.test.{js,jsx,ts,tsx}", "src/test/**"],
+  "platform": "browser",
+  "globals": {
+    "__APP_VERSION__": "readonly"
+  },
+  "rules": {
+    "no-unused-vars": "off"
+  }
+}
