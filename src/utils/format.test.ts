@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@guchho/test'
 
-import { formatBytes, formatSchemaVersion } from './format.ts'
+import { formatBytes, formatDate, formatSchemaVersion } from './format.ts'
 
 describe('formatBytes', () => {
   it('formats byte values', () => {
@@ -22,5 +22,15 @@ describe('formatBytes', () => {
 describe('formatSchemaVersion', () => {
   it('prefixes the version', () => {
     expect(formatSchemaVersion(1)).toBe('v1')
+  })
+})
+
+describe('formatDate', () => {
+  it('formats an ISO timestamp', () => {
+    expect(formatDate('2026-11-03T15:30:00.000Z')).toBe('03 Nov 2026')
+  })
+
+  it('handles invalid input', () => {
+    expect(formatDate('not-a-date')).toBe('—')
   })
 })
