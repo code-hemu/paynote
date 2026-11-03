@@ -60,7 +60,7 @@ function createFixture(): Fixture {
     return link
   })
 
-  customers.textContent = 'Planned for Phase 2'
+  customers.textContent = 'Customer records'
   notFound.textContent = 'Page not found'
 
   return {
@@ -128,7 +128,7 @@ describe('App shell', () => {
     expect(fixture.storageBadge.textContent).toBe('Available')
   })
 
-  it('navigates to a placeholder module', () => {
+  it('navigates to the customer module', () => {
     const { app: currentApp, fixture } = mountApp()
 
     currentApp.navigate('/customers')
@@ -137,7 +137,7 @@ describe('App shell', () => {
     expect(fixture.dashboard.hidden).toBe(true)
     expect(fixture.sectionTitle.textContent).toBe('Customers')
     expect(fixture.document.title).toBe('Customers · PayNote')
-    expect(fixture.customers.textContent).toContain('Planned for Phase 2')
+    expect(fixture.customers.textContent).toContain('Customer records')
     expect(
       fixture.navLinks.find((element) => element.getAttribute('href') === '#/customers')?.getAttribute('aria-current'),
     ).toBe('page')
