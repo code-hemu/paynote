@@ -91,6 +91,24 @@ describe('customer repository', () => {
     expect(listCustomers(db).total).toBe(0)
   })
 
+  it('sorts customers by name in both directions', () => {
+    openDatabase()
+
+    createCustomer(db, { fullName: 'Zara Khan' })
+    createCustomer(db, { fullName: 'Asha Rao' })
+
+    expect(
+      listCustomers(db, { sortBy: 'name', sortDirection: 'asc' }).items.map(
+        (customer) => customer.fullName,
+      ),
+    ).toEqual(['Asha Rao', 'Zara Khan'])
+    expect(
+      listCustomers(db, { sortBy: 'name', sortDirection: 'desc' }).items.map(
+        (customer) => customer.fullName,
+      ),
+    ).toEqual(['Zara Khan', 'Asha Rao'])
+  })
+
   it('rejects deleting a customer that has receipts', () => {
     openDatabase()
 
