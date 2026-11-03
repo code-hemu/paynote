@@ -2,6 +2,9 @@ export const PROPERTY_TYPES = ['house', 'godown', 'shop', 'other'] as const
 
 export type PropertyType = (typeof PROPERTY_TYPES)[number]
 
+export type SortDirection = 'asc' | 'desc'
+export type CustomerSortField = 'name' | 'createdAt' | 'updatedAt'
+
 export interface PageOptions {
   limit?: number
   offset?: number
@@ -35,6 +38,8 @@ export interface CustomerInput {
 
 export interface CustomerListOptions extends PageOptions {
   search?: string | null
+  sortBy?: CustomerSortField | null
+  sortDirection?: SortDirection | null
 }
 
 export interface Property {
