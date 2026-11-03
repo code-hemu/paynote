@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./public/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta
+      name="description"
+      content="PayNote — Simple Receipts. Organized Payments. Browser-based receipt and payment manager."
+    />
+    <title>PayNote</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <svg class="svg-sprite" aria-hidden="true">
+      <defs>
+        <symbol id="icon-receipt" viewBox="0 0 24 24">
+          <path d="M6 2h12a1 1 0 0 1 1 1v18l-3-2-3 2-3-2-3 2V3a1 1 0 0 1 1-1Z"></path>
+          <path d="M9 7h6M9 11h6M9 15h4"></path>
+        </symbol>
+        <symbol id="icon-dashboard" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+        </symbol>
+        <symbol id="icon-plus" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 8v8M8 12h8"></path>
+        </symbol>
+        <symbol id="icon-history" viewBox="0 0 24 24">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+          <path d="M3 3v5h5M12 7v5l3 2"></path>
+        </symbol>
+        <symbol id="icon-users" viewBox="0 0 24 24">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </symbol>
+        <symbol id="icon-building" viewBox="0 0 24 24">
+          <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+          <path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M9 21v-2h6v2"></path>
+        </symbol>
+        <symbol id="icon-chart" viewBox="0 0 24 24">
+          <path d="M3 3v18h18"></path>
+          <path d="m7 15 4-4 3 3 5-6"></path>
+        </symbol>
+        <symbol id="icon-database" viewBox="0 0 24 24">
+          <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
+          <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path>
+          <path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"></path>
+        </symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"
+          ></path>
+        </symbol>
+        <symbol id="icon-shield" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+          <path d="m9 12 2 2 4-4"></path>
+        </symbol>
+        <symbol id="icon-monitor" viewBox="0 0 24 24">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <path d="M8 21h8M12 17v4"></path>
+        </symbol>
+        <symbol id="icon-hard-drive" viewBox="0 0 24 24">
+          <path
+            d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"
+          ></path>
+          <path d="M2 12h20M6 16h.01M10 16h.01"></path>
+        </symbol>
+        <symbol id="icon-layers" viewBox="0 0 24 24">
+          <path d="m12 2 9 5-9 5-9-5 9-5Z"></path>
+          <path d="m3 12 9 5 9-5M3 17l9 5 9-5"></path>
+        </symbol>
+        <symbol id="icon-alert" viewBox="0 0 24 24">
+          <path
+            d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+          ></path>
+          <path d="M12 9v4M12 17h.01"></path>
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="m8 12 3 3 5-6"></path>
+        </symbol>
+        <symbol id="icon-file-question" viewBox="0 0 24 24">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2Z"></path>
+          <path d="M14 2v6h6M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"></path>
+        </symbol>
+      </defs>
+    </svg>
+
+    <div class="app">
+      <aside class="sidebar">
+        <a class="brand" href="#/" aria-label="PayNote dashboard">
+          <span class="brand-mark">
+            <svg class="icon" aria-hidden="true"><use href="#icon-receipt"></use></svg>
+          </span>
+          <span class="brand-copy">
+            <strong>PayNote</strong>
+            <small>Receipts &amp; Payments</small>
+          </span>
+        </a>
+
+        <nav class="nav" aria-label="Primary">
+          <a class="nav-link" href="#/" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg>
+            <span>Dashboard</span>
+          </a>
+          <a class="nav-link" href="#/receipts/new" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+            <span>New Receipt</span>
+          </a>
+          <a class="nav-link" href="#/receipts" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-history"></use></svg>
+            <span>Receipt History</span>
+          </a>
+          <a class="nav-link" href="#/customers" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg>
+            <span>Customers</span>
+          </a>
+          <a class="nav-link" href="#/properties" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-building"></use></svg>
+            <span>Properties</span>
+          </a>
+          <a class="nav-link" href="#/reports" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
+            <span>Reports</span>
+          </a>
+          <a class="nav-link" href="#/backup" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-database"></use></svg>
+            <span>Backup &amp; Restore</span>
+          </a>
+          <a class="nav-link" href="#/settings" data-nav>
+            <svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <svg class="icon" aria-hidden="true"><use href="#icon-shield"></use></svg>
+          <p>Offline-first. Your records stay on this computer and are never uploaded.</p>
+        </div>
+      </aside>
+
+      <div class="app-body">
+        <header class="topbar">
+          <div class="topbar-context">
+            <p class="topbar-eyebrow">PayNote</p>
+            <p class="topbar-section" data-section-title>Dashboard</p>
+          </div>
+          <div class="topbar-meta">
+            <span
+              class="status status-loading"
+              data-storage-status
+              role="status"
+              aria-live="polite"
+            >
+              <span class="spinner" aria-hidden="true"></span>
+              Checking storage
+            </span>
+            <span class="badge badge-neutral" data-app-version>v0.1.0</span>
+          </div>
+        </header>
+
+        <main class="content" id="main-content">
+          <section
+            class="page"
+            id="page-dashboard"
+            data-route="/"
+            aria-labelledby="dashboard-title"
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="dashboard-title">Dashboard</h1>
+                <p class="page-description">A browser-based overview of your PayNote workspace.</p>
+              </div>
+            </div>
+
+            <div class="card error-card" data-dashboard-error hidden>
+              <svg class="card-icon icon-danger" aria-hidden="true">
+                <use href="#icon-alert"></use>
+              </svg>
+              <div>
+                <h2 class="card-title">Workspace unavailable</h2>
+                <p class="card-description" data-error-message>
+                  The workspace could not be loaded.
+                </p>
+                <button class="button button-secondary" type="button" data-retry>Try again</button>
+              </div>
+            </div>
+
+            <div class="grid">
+              <section class="card" aria-labelledby="application-title">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title" id="application-title">Application</h2>
+                    <p class="card-description">Web app and version information.</p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true"><use href="#icon-monitor"></use></svg>
+                </div>
+                <div class="card-content">
+                  <dl class="info-list">
+                    <div class="info-row">
+                      <dt>Name</dt>
+                      <dd data-field="app-name">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Version</dt>
+                      <dd data-field="app-version">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Platform</dt>
+                      <dd data-field="platform">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Storage</dt>
+                      <dd data-field="storage-type">—</dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+
+              <section class="card" aria-labelledby="storage-title">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title" id="storage-title">Local storage</h2>
+                    <p class="card-description">Browser storage health and usage.</p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true">
+                    <use href="#icon-hard-drive"></use>
+                  </svg>
+                </div>
+                <div class="card-content">
+                  <dl class="info-list">
+                    <div class="info-row">
+                      <dt>Status</dt>
+                      <dd>
+                        <span class="badge badge-neutral" data-storage-badge>Checking</span>
+                      </dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Records stored</dt>
+                      <dd data-field="record-count">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Estimated usage</dt>
+                      <dd data-field="usage-bytes">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Browser quota</dt>
+                      <dd data-field="quota-bytes">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Schema</dt>
+                      <dd>
+                        <span class="badge badge-brand" data-schema-version>—</span>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+
+              <section class="card span-2" aria-labelledby="location-title">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title" id="location-title">Storage location</h2>
+                    <p class="card-description">
+                      Data is kept in this browser profile. Clearing site data removes your records.
+                    </p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true">
+                    <use href="#icon-hard-drive"></use>
+                  </svg>
+                </div>
+                <div class="card-content">
+                  <dl class="info-list">
+                    <div class="info-row">
+                      <dt>Storage engine</dt>
+                      <dd data-field="storage-engine">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Database</dt>
+                      <dd class="mono" data-field="database-path">—</dd>
+                    </div>
+                    <div class="info-row">
+                      <dt>Device</dt>
+                      <dd data-field="device-platform">—</dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+
+              <section class="card span-2" aria-labelledby="foundation-title">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title" id="foundation-title">Foundation status</h2>
+                    <p class="card-description">Phase 1 checks are complete when all items pass.</p>
+                  </div>
+                  <svg class="card-icon" aria-hidden="true"><use href="#icon-layers"></use></svg>
+                </div>
+                <div class="card-content">
+                  <ul class="feature-list">
+                    <li>
+                      <svg class="icon icon-success" aria-hidden="true">
+                        <use href="#icon-check"></use>
+                      </svg>
+                      Web app shell and navigation ready
+                    </li>
+                    <li>
+                      <svg class="icon icon-success" aria-hidden="true">
+                        <use href="#icon-check"></use>
+                      </svg>
+                      Browser storage available
+                    </li>
+                    <li>
+                      <svg class="icon icon-success" aria-hidden="true">
+                        <use href="#icon-check"></use>
+                      </svg>
+                      Typed local data service ready
+                    </li>
+                    <li>
+                      <svg class="icon icon-success" aria-hidden="true">
+                        <use href="#icon-check"></use>
+                      </svg>
+                      Production web build ready
+                    </li>
+                  </ul>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section
+            class="page"
+            id="page-new-receipt"
+            data-route="/receipts/new"
+            aria-labelledby="new-receipt-title"
+            hidden
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="new-receipt-title">New Receipt</h1>
+                <p class="page-description">Create and save a new payment receipt.</p>
+              </div>
+            </div>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
+              </span>
+              <h2>Planned for Phase 3</h2>
+              <p>
+                The shared receipt engine, category forms, validation, and transaction-safe
+                numbering arrive in Phase 3.
+              </p>
+            </div>
+          </section>
+
+          <section
+            class="page"
+            id="page-receipts"
+            data-route="/receipts"
+            aria-labelledby="receipts-title"
+            hidden
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="receipts-title">Receipt History</h1>
+                <p class="page-description">Search, filter, and review saved receipts.</p>
+              </div>
+            </div>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-history"></use></svg>
+              </span>
+              <h2>Planned for Phase 3</h2>
+              <p>
+                Receipt search, filters, sorting, pagination, and open/edit actions arrive with the
+                receipt engine.
+              </p>
+            </div>
+          </section>
+
+          <section
+            class="page"
+            id="page-customers"
+            data-route="/customers"
+            aria-labelledby="customers-title"
+            hidden
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="customers-title">Customers</h1>
+                <p class="page-description">
+                  Manage the people and businesses you issue receipts to.
+                </p>
+              </div>
+            </div>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-users"></use></svg>
+              </span>
+              <h2>Planned for Phase 2</h2>
+              <p>
+                Customer records, search, receipt history, and payment totals arrive in Phase 2.
+              </p>
+            </div>
+          </section>
+
+          <section
+            class="page"
+            id="page-properties"
+            data-route="/properties"
+            aria-labelledby="properties-title"
+            hidden
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="properties-title">Properties</h1>
+                <p class="page-description">Track houses, godowns, shops, and other properties.</p>
+              </div>
+            </div>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-building"></use></svg>
+              </span>
+              <h2>Planned for Phase 2</h2>
+              <p>Property records, associations, search, and receipt history arrive in Phase 2.</p>
+            </div>
+          </section>
+
+          <section
+            class="page"
+            id="page-reports"
+            data-route="/reports"
+            aria-labelledby="reports-title"
+            hidden
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="reports-title">Reports</h1>
+                <p class="page-description">
+                  Review collections by period, category, customer, and property.
+                </p>
+              </div>
+            </div>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
+              </span>
+              <h2>Planned for Phase 5</h2>
+              <p>
+                Daily, monthly, yearly, category, customer, property, and payment-method reports
+                arrive in Phase 5.
+              </p>
+            </div>
+          </section>
+
+          <section
+            class="page"
+            id="page-backup"
+            data-route="/backup"
+            aria-labelledby="backup-title"
+            hidden
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="backup-title">Backup &amp; Restore</h1>
+                <p class="page-description">Protect your records with local backups.</p>
+              </div>
+            </div>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-database"></use></svg>
+              </span>
+              <h2>Planned for Phase 6</h2>
+              <p>
+                Validated database backups, safe restore, and CSV receipt export arrive in Phase 6.
+              </p>
+            </div>
+          </section>
+
+          <section
+            class="page"
+            id="page-settings"
+            data-route="/settings"
+            aria-labelledby="settings-title"
+            hidden
+          >
+            <div class="page-header">
+              <div>
+                <h1 class="page-title" id="settings-title">Settings</h1>
+                <p class="page-description">
+                  Configure business details, receipt preferences, and application options.
+                </p>
+              </div>
+            </div>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-settings"></use></svg>
+              </span>
+              <h2>Planned for a later phase</h2>
+              <p>
+                Business information, receipt numbering, theme, backup location, and other
+                preferences will be managed here.
+              </p>
+            </div>
+          </section>
+
+          <section class="page" id="page-not-found" data-route="*" hidden>
+            <div class="empty-state">
+              <span class="empty-icon">
+                <svg class="icon" aria-hidden="true"><use href="#icon-file-question"></use></svg>
+              </span>
+              <h1 class="page-title">Page not found</h1>
+              <p>The page you are looking for does not exist in this workspace.</p>
+              <a class="button button-primary" href="#/">Back to dashboard</a>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
