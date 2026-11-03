@@ -1,5 +1,7 @@
 import type { Database } from '@sqlite.org/sqlite-wasm'
 
+import { DbSchemaError } from './errors.ts'
+
 interface Migration {
   version: number
   name: string
@@ -7,6 +9,17 @@ interface Migration {
 }
 
 const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+
+const REQUIRED_TABLES = [
+  'settings',
+  'customers',
+  'properties',
+  'receipts',
+  'receipt_details',
+  'receipt_sequences',
+  'audit_logs',
+  'schema_migrations',
+] as const
 
 const MIGRATIONS: readonly Migration[] = [
   {
@@ -116,13 +129,20 @@ export function readSchemaVersion(db: Database): number {
 
 export function migrateDatabase(db: Database): number {
   db.exec('PRAGMA foreign_keys = ON')
+
+  let currentVersion = readSchemaVersion(db)
+
+  if (currentVersion > LATEST_SCHEMA_VERSION) {
+    throw new DbSchemaError(
+      `This workspace uses database version ${currentVersion}, but this PayNote build supports version ${LATEST_SCHEMA_VERSION}. Update PayNote or restore a compatible backup.`,
+    )
+  }
+
   db.exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
     version INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     applied_at TEXT NOT NULL
   )`)
-
-  let currentVersion = readSchemaVersion(db)
 
   for (const migration of MIGRATIONS) {
     if (migration.version <= currentVersion) {
@@ -130,27 +150,72 @@ export function migrateDatabase(db: Database): number {
     }
 
     if (migration.version !== currentVersion + 1) {
-      throw new Error(`Missing database migration before version ${migration.version}.`)
+      throw new DbSchemaError(
+        `Database version ${currentVersion} cannot be upgraded because migration ${migration.version} is out of sequence. Restore a backup or clear site data.`,
+      )
     }
 
-    db.transaction('IMMEDIATE', () => {
-      for (const statement of migration.statements) {
-        db.exec(statement)
-      }
+    try {
+      db.transaction('IMMEDIATE', () => {
+        for (const statement of migration.statements) {
+          db.exec(statement)
+        }
 
-      db.exec(
-        'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
-        {
-          bind: [migration.version, migration.name, new Date().toISOString()],
-        },
+        db.exec(
+          'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
+          {
+            bind: [migration.version, migration.name, new Date().toISOString()],
+          },
+        )
+        db.exec(`PRAGMA user_version = ${migration.version}`)
+      })
+    } catch (error) {
+      throw new DbSchemaError(
+        `The database could not be upgraded to version ${migration.version}: ${errorMessage(error)}`,
       )
-      db.exec(`PRAGMA user_version = ${migration.version}`)
-    })
+    }
 
     currentVersion = migration.version
   }
 
+  assertDatabaseHealth(db)
   return currentVersion
+}
+
+export function assertDatabaseHealth(db: Database): void {
+  const tables = db.selectObjects(
+    `SELECT name FROM sqlite_master WHERE type = 'table'`,
+  )
+  const tableNames = new Set(
+    tables.map((row) => (typeof row.name === 'string' ? row.name : String(row.name ?? ''))),
+  )
+  const missingTables = REQUIRED_TABLES.filter((table) => !tableNames.has(table))
+
+  if (missingTables.length > 0) {
+    throw new DbSchemaError(
+      `The database is missing required tables: ${missingTables.join(', ')}. Restore a backup or clear site data.`,
+    )
+  }
+
+  const quickCheck = db.selectValue('PRAGMA quick_check')
+
+  if (quickCheck !== 'ok') {
+    throw new DbSchemaError(
+      'The database file appears to be damaged. Restore a backup or clear site data to start over.',
+    )
+  }
+
+  const foreignKeyViolations = db.selectObjects('PRAGMA foreign_key_check')
+
+  if (foreignKeyViolations.length > 0) {
+    throw new DbSchemaError(
+      'The database contains records that point to missing records. Restore a backup before continuing.',
+    )
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown migration error.'
 }
 
 function toNumber(value: unknown): number {
