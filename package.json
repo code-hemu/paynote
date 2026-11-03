@@ -1,0 +1,29 @@
+{
+  "name": "paynote",
+  "private": true,
+  "version": "0.1.0",
+  "description": "PayNote — Simple Receipts. Organized Payments. Browser-based receipt manager.",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run typecheck && guchho clean && node scripts/build.mjs",
+    "preview": "guchho serve dist --host=127.0.0.1 --port=4173",
+    "clean": "guchho clean && node scripts/clean.mjs",
+    "lint": "guchho lint && guchho lint --config guchho.lint.node.config.json",
+    "typecheck": "tsc -b",
+    "test": "guchho-test run --pool=forks",
+    "test:watch": "guchho-test watch --pool=forks"
+  },
+  "devDependencies": {
+    "@guchho/test": "^0.0.2",
+    "@types/node": "^26.6.6",
+    "guchho": "^1.0.9",
+    "typescript": "~7.0.2"
+  },
+  "allowScripts": {
+    "guchho@1.0.9": true
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "3.54.1-build1"
+  }
+}
