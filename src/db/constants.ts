@@ -1,0 +1,6 @@
+export const DATABASE_FILE = '/paynote.sqlite3'
+export const DATABASE_DIRECTORY = '/paynote'
+export const DATABASE_VFS = 'paynote-opfs'
+export const DATABASE_LOCK = 'paynote-database'
+export const DATABASE_WORKER_FILE = 'sqlite.worker.js'
+export const STORAGE_TYPE = 'SQLite WASM + OPFS'
