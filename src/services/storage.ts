@@ -1,17 +1,10 @@
-import { SqliteClient } from '../db/client.ts'
 import { DATABASE_FILE, STORAGE_TYPE } from '../db/constants.ts'
 import { DbError } from '../db/errors.ts'
 import { LATEST_SCHEMA_VERSION } from '../db/migrations.ts'
 import type { AppInfo, StorageHealth } from '../types/system.ts'
+import { getDatabaseClient } from './database.ts'
 
 export const STORAGE_LOCATION = DATABASE_FILE
-
-let client: SqliteClient | null = null
-
-function getClient(): SqliteClient {
-  client ??= new SqliteClient()
-  return client
-}
 
 export function getAppInfo(): AppInfo {
   return {
@@ -25,7 +18,7 @@ export function getAppInfo(): AppInfo {
 
 export async function getStorageHealth(): Promise<StorageHealth> {
   try {
-    const health = await getClient().health()
+    const health = await getDatabaseClient().health()
 
     return {
       ok: true,
