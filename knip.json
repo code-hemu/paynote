@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "index.html",
+    "guchho.config.js",
+    "guchho.test.config.js",
+    "guchho.lint.config.json",
+    "guchho.lint.node.config.json",
+    "scripts/**/*.mjs",
+    "src/main.ts",
+    "src/db/sqlite.worker.ts",
+    "src/**/*.test.ts",
+    "src/test/setup.ts"
+  ],
+  "project": ["src/**/*.ts", "scripts/**/*.mjs", "*.config.{js,ts}"]
+}
