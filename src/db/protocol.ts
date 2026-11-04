@@ -65,6 +65,7 @@ const DB_METHODS = [
   'reports.summary',
   'backup.export',
   'backup.restore',
+  'backup.deleteAll',
 ] as const
 
 export type DbMethod = (typeof DB_METHODS)[number]
@@ -125,6 +126,10 @@ export interface DbMethodMap {
   'backup.restore': {
     params: { backup: BackupFile; mode: RestoreMode }
     result: RestoreSummary
+  },
+  'backup.deleteAll': {
+    params: undefined
+    result: null
   }
 }
 

@@ -47,6 +47,12 @@ const mountPoints = [
   'data-settings-preview-name',
   'data-settings-preview-address',
   'data-settings-preview-phone',
+  'data-settings-signature-image',
+  'data-settings-business-field',
+  'data-settings-individual-field',
+  'data-settings-photo-upload',
+  'data-settings-signature-upload',
+  'data-settings-signature-draw',
 ]
 
 describe('index.html shell', () => {
@@ -58,6 +64,37 @@ describe('index.html shell', () => {
           : `data-route="${route}"`
       expect(indexHtml).toContain(marker)
     }
+  })
+
+  it('starts settings with the profile type selector', () => {
+    const formStart = indexHtml.indexOf('data-settings-form')
+    const profileType = indexHtml.indexOf('data-settings-input="profileType"')
+    const businessName = indexHtml.indexOf('data-settings-input="businessName"')
+
+    expect(profileType).toBeGreaterThan(formStart)
+    expect(profileType).toBeLessThan(businessName)
+    expect(indexHtml).toContain('settings-profile-type-individual')
+    expect(indexHtml).toContain('settings-profile-type-business')
+    expect(indexHtml).toContain('profile-type-switch')
+  })
+
+  it('declares individual personal information fields', () => {
+    for (const field of [
+      'businessName',
+      'businessPhone',
+      'businessEmail',
+      'businessAddress',
+      'profilePhoto',
+      'profileSignature',
+    ]) {
+      expect(indexHtml).toContain(`data-settings-input="${field}"`)
+    }
+
+    expect(indexHtml).toContain('data-settings-individual-field')
+    expect(indexHtml).toContain('Digital Signature')
+    expect(indexHtml).toContain('Upload Signature')
+    expect(indexHtml).toContain('Draw Signature')
+    expect(indexHtml).toContain('Profile Photo')
   })
 
   it('links the manifest and omits header-only CSP directives', () => {

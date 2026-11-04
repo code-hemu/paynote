@@ -15,6 +15,7 @@ const MAX_BACKUP_BYTES = 50 * 1024 * 1024
 export interface BackupDeps {
   exportBackup?: typeof backupService.exportBackup
   restoreBackup?: typeof backupService.restoreBackup
+  deleteAllData?: typeof backupService.deleteAllData
 }
 
 export interface BackupController {
@@ -36,6 +37,7 @@ interface BackupElements {
   mode: NodeListOf<HTMLInputElement>
   restoreButton: HTMLButtonElement
   clearButton: HTMLButtonElement | null
+  deleteAllButton: HTMLButtonElement | null
   notice: HTMLElement
   error: HTMLElement
   errorPanel: HTMLElement
@@ -63,6 +65,7 @@ function queryElements(doc: Document): BackupElements {
     mode: doc.querySelectorAll<HTMLInputElement>('[data-backup-mode]'),
     restoreButton: doc.querySelector<HTMLButtonElement>('[data-backup-restore]')!,
     clearButton: doc.querySelector<HTMLButtonElement>('[data-backup-clear]'),
+    deleteAllButton: doc.querySelector<HTMLButtonElement>('[data-backup-delete-all]'),
     notice: doc.querySelector<HTMLElement>('[data-backup-notice]')!,
     error: doc.querySelector<HTMLElement>('[data-backup-error]')!,
     errorPanel: doc.querySelector<HTMLElement>('[data-backup-error-panel]')!,
@@ -88,6 +91,7 @@ export function createBackupPage(
   const elements = queryElements(doc)
   const exportBackup = deps.exportBackup ?? backupService.exportBackup
   const restoreBackup = deps.restoreBackup ?? backupService.restoreBackup
+  const deleteAllData = deps.deleteAllData ?? backupService.deleteAllData
 
   let selected: BackupFile | null = null
   let selectedName = ''
@@ -109,6 +113,9 @@ export function createBackupPage(
     elements.exportButton.disabled = value
     elements.restoreButton.disabled = value || selected === null
     elements.fileInput.disabled = value
+    if (elements.deleteAllButton) {
+      elements.deleteAllButton.disabled = value
+    }
     elements.root.setAttribute('aria-busy', value ? 'true' : 'false')
   }
 
@@ -249,6 +256,40 @@ export function createBackupPage(
     }
   }
 
+  async function handleDeleteAll() {
+    if (busy) {
+      return
+    }
+
+    if (
+      !globalThis.confirm(
+        'This permanently deletes every customer, property, receipt, and setting. This cannot be undone. Continue?',
+      )
+    ) {
+      return
+    }
+
+    setBusy(true)
+    setError('')
+    setNotice('')
+
+    try {
+      await deleteAllData()
+      selected = null
+      selectedName = ''
+      elements.fileInput.value = ''
+      elements.fileLabel.textContent = 'Choose a backup file'
+      elements.preview.hidden = true
+      elements.statusLine.textContent = 'No backup selected.'
+      setNotice('All data has been deleted.')
+      view?.dispatchEvent(new CustomEvent('paynote:data-changed'))
+    } catch (error) {
+      setError(errorMessage(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function handleFileChange() {
     const file = elements.fileInput.files?.[0]
 
@@ -291,6 +332,8 @@ export function createBackupPage(
   elements.fileInput.addEventListener('change', handleFileChange)
   elements.restoreButton.addEventListener('click', () => void handleRestore())
   elements.clearButton?.addEventListener('click', handleClear)
+  const handleDeleteAllClick = () => void handleDeleteAll()
+  elements.deleteAllButton?.addEventListener('click', handleDeleteAllClick)
   elements.dropZone.addEventListener('dragover', handleDragOver)
   elements.dropZone.addEventListener('dragleave', handleDragLeave)
   elements.dropZone.addEventListener('drop', handleDrop)
@@ -362,6 +405,7 @@ export function createBackupPage(
       elements.dropZone.removeEventListener('dragover', handleDragOver)
       elements.dropZone.removeEventListener('dragleave', handleDragLeave)
       elements.dropZone.removeEventListener('drop', handleDrop)
+      elements.deleteAllButton?.removeEventListener('click', handleDeleteAllClick)
     },
   }
 }

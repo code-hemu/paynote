@@ -28,8 +28,9 @@ export function setFormValues(
     `[data-${prefix}-input]`,
   )) {
     const field = element.dataset[`${prefix}Input`]
+    const type = (element as HTMLInputElement).type
 
-    if (field) {
+    if (field && type !== 'radio' && type !== 'checkbox') {
       element.value = values[field] ?? ''
     }
   }

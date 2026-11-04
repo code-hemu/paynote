@@ -607,7 +607,7 @@
                     <span class="field-error" data-receipt-field-error="paymentMethod" hidden></span>
                   </label>
                   <label class="field">
-                    <span class="field-label">Amount (₹) <span class="required">*</span></span>
+                    <span class="field-label">Amount <span class="required">*</span></span>
                     <input
                       class="input"
                       type="number"
@@ -1567,7 +1567,7 @@
               </div>
             </div>
 
-            <div class="card form-card" data-reports>
+            <div class="card form-card reports-card" data-reports>
               <div class="list-toolbar list-toolbar-wrap" role="search">
                 <label class="field">
                   <span class="field-label">Period</span>
@@ -1727,8 +1727,9 @@
                 </div>
               </div>
 
-              <div class="print-only" data-print-report aria-hidden="true"></div>
             </div>
+
+            <div class="print-only" data-print-report aria-hidden="true"></div>
           </section>
 
           <section
@@ -1823,6 +1824,23 @@
                 </div>
               </section>
 
+              <section class="card">
+                <header class="card-header">
+                  <div>
+                    <h2 class="card-title">Delete database</h2>
+                    <p class="card-description">Permanently remove all customers, properties, receipts, and settings.</p>
+                  </div>
+                </header>
+                <div class="card-body stack">
+                  <p class="list-status">This action cannot be undone.</p>
+                  <div class="card-actions">
+                    <button class="button button-danger" type="button" data-backup-delete-all>
+                      Delete all data
+                    </button>
+                  </div>
+                </div>
+              </section>
+
               <section class="card span-2 error-card" data-backup-error-panel hidden>
                 <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
                 <div>
@@ -1853,9 +1871,9 @@
               <section class="card span-2">
                 <div class="card-header">
                   <div>
-                    <h2 class="card-title">Business profile</h2>
+                    <h2 class="card-title">Profile details</h2>
                     <p class="card-description">
-                      These details appear on printed receipts. Everything is stored only in this browser.
+                      Personal or business details that appear on printed receipts. Everything is stored only in this browser.
                     </p>
                   </div>
                   <svg class="card-icon" aria-hidden="true"><use href="#icon-settings"></use></svg>
@@ -1863,41 +1881,296 @@
                 <div class="card-content">
                   <form class="form" data-settings-form novalidate>
                     <div class="form-grid">
-                      <label class="field">
+                      <div class="field span-2">
+                        <span class="field-label">Profile Type</span>
+                        <div class="profile-type-switch" role="group" aria-label="Select profile type">
+                          <input
+                            type="radio"
+                            name="settingsProfileType"
+                            id="settings-profile-type-individual"
+                            value="individual"
+                            data-settings-input="profileType"
+                          />
+                          <label for="settings-profile-type-individual">
+                            <span>Individual</span>
+                          </label>
+                          <input
+                            type="radio"
+                            name="settingsProfileType"
+                            id="settings-profile-type-business"
+                            value="business"
+                            data-settings-input="profileType"
+                            checked
+                          />
+                          <label for="settings-profile-type-business">
+                            <span>Business</span>
+                          </label>
+                          <span class="switch-indicator"></span>
+                        </div>
+                        <span class="field-error" data-settings-field-error="profileType" hidden></span>
+                      </div>
+                      <div class="span-2 settings-section-block" data-settings-individual-field hidden>
+                        <h3 class="section-heading">Personal information</h3>
+                        <p class="field-hint">Personal details that appear on printed receipts.</p>
+                      </div>
+                      <label class="field" data-settings-individual-field hidden>
+                        <span class="field-label">Full name</span>
+                        <input class="input" type="text" maxlength="200" data-settings-input="fullName" />
+                        <span class="field-error" data-settings-field-error="fullName" hidden></span>
+                      </label>
+                      <div class="span-2 settings-section-block" data-settings-business-field>
+                        <h3 class="section-heading">Business information</h3>
+                        <p class="field-hint">Commercial details that appear on printed receipts.</p>
+                      </div>
+                      <label class="field" data-settings-business-field>
                         <span class="field-label">Business name</span>
                         <input class="input" type="text" maxlength="200" data-settings-input="businessName" />
                         <span class="field-error" data-settings-field-error="businessName" hidden></span>
                       </label>
+                      <label class="field" data-settings-business-field>
+                        <span class="field-label">Legal business name</span>
+                        <input class="input" type="text" maxlength="200" data-settings-input="legalBusinessName" />
+                        <span class="field-error" data-settings-field-error="legalBusinessName" hidden></span>
+                      </label>
+                      <label class="field" data-settings-business-field>
+                        <span class="field-label">Business type</span>
+                        <select class="input" data-settings-input="businessType">
+                          <option value="">Select type</option>
+                          <option value="sole-proprietorship">Sole proprietorship</option>
+                          <option value="partnership">Partnership</option>
+                          <option value="llp">LLP</option>
+                          <option value="private-limited">Private limited</option>
+                          <option value="public-limited">Public limited</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <span class="field-error" data-settings-field-error="businessType" hidden></span>
+                      </label>
+                      <label class="field" data-settings-business-field>
+                        <span class="field-label">Business registration number</span>
+                        <input class="input" type="text" maxlength="100" data-settings-input="businessRegistrationNumber" />
+                        <span class="field-error" data-settings-field-error="businessRegistrationNumber" hidden></span>
+                      </label>
+                      <label class="field" data-settings-business-field>
+                        <span class="field-label">Tax identification number</span>
+                        <input class="input" type="text" maxlength="100" data-settings-input="taxIdentificationNumber" />
+                        <span class="field-error" data-settings-field-error="taxIdentificationNumber" hidden></span>
+                      </label>
+                      <label class="field span-2" data-settings-business-field>
+                        <span class="field-label">Website</span>
+                        <input class="input" type="url" maxlength="500" placeholder="https://…" data-settings-input="website" />
+                        <span class="field-error" data-settings-field-error="website" hidden></span>
+                      </label>
+                      <label class="field span-2" data-settings-business-field>
+                        <span class="field-label">Logo URL</span>
+                        <input class="input" type="url" maxlength="5000" placeholder="https://… or data:image/…" data-settings-input="businessLogo" />
+                        <span class="field-error" data-settings-field-error="businessLogo" hidden></span>
+                      </label>
+                      <div class="span-2 settings-section-block">
+                        <h3 class="section-heading">Contact details</h3>
+                        <p class="field-hint">How customers can reach you.</p>
+                      </div>
                       <label class="field">
-                        <span class="field-label">Phone</span>
+                        <span class="field-label">Phone number</span>
                         <input class="input" type="tel" maxlength="40" data-settings-input="businessPhone" />
                         <span class="field-error" data-settings-field-error="businessPhone" hidden></span>
                       </label>
                       <label class="field">
-                        <span class="field-label">Email</span>
+                        <span class="field-label">Email address</span>
                         <input class="input" type="email" maxlength="200" data-settings-input="businessEmail" />
                         <span class="field-error" data-settings-field-error="businessEmail" hidden></span>
-                      </label>
-                      <label class="field">
-                        <span class="field-label">Receipt prefix</span>
-                        <input class="input" type="text" maxlength="10" data-settings-input="receiptPrefix" />
-                        <span class="field-error" data-settings-field-error="receiptPrefix" hidden></span>
                       </label>
                       <label class="field span-2">
                         <span class="field-label">Address</span>
                         <input class="input" type="text" maxlength="500" data-settings-input="businessAddress" />
                         <span class="field-error" data-settings-field-error="businessAddress" hidden></span>
                       </label>
+                      <div class="span-2">
+                        <section class="profile-media-section">
+                          <div class="form-group" data-settings-individual-field hidden>
+                            <div class="section-heading">
+                              <div>
+                                <h3>Profile Photo</h3>
+                                <p>Upload or provide a profile image.</p>
+                              </div>
+                              <span class="optional-label">Optional</span>
+                            </div>
+
+                            <div class="upload-card profile-photo-card">
+                              <div class="image-preview">
+                                <img
+                                  data-settings-profile-photo-preview
+                                  src=""
+                                  alt="Profile photo preview"
+                                  hidden
+                                />
+                                <span data-settings-profile-photo-placeholder>
+                                  No profile photo uploaded
+                                </span>
+                              </div>
+
+                              <div class="upload-actions">
+                                <label class="upload-button" data-settings-photo-upload>
+                                  Upload Photo
+                                </label>
+                                <button type="button" data-settings-photo-clear>
+                                  Remove
+                                </button>
+                              </div>
+
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                data-settings-photo-file
+                                hidden
+                              />
+
+                              <input
+                                type="url"
+                                maxlength="5000"
+                                data-settings-input="profilePhoto"
+                                hidden
+                              />
+
+                              <small>PNG, JPG or WebP. Maximum size: 5 MB.</small>
+                              <span class="field-error" data-settings-field-error="profilePhoto" hidden></span>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <div class="section-heading">
+                              <div>
+                                <h3>Digital Signature</h3>
+                                <p>Your signature can appear on printed receipts.</p>
+                              </div>
+                              <span class="optional-label">Optional</span>
+                            </div>
+
+                            <div class="upload-card signature-card">
+                              <div class="signature-preview">
+                                <img
+                                  data-settings-signature-preview
+                                  src=""
+                                  alt="Signature preview"
+                                  hidden
+                                />
+                                <span data-settings-signature-placeholder>
+                                  Signature preview
+                                </span>
+                              </div>
+
+                              <div class="signature-actions">
+                                <label class="upload-button" data-settings-signature-upload>
+                                  Upload Signature
+                                </label>
+
+                                <button type="button" data-settings-signature-draw>
+                                  Draw Signature
+                                </button>
+
+                                <button type="button" data-settings-signature-clear>
+                                  Remove
+                                </button>
+                              </div>
+
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                data-settings-signature-file
+                                hidden
+                              />
+
+                              <input
+                                type="url"
+                                maxlength="5000"
+                                data-settings-input="profileSignature"
+                                hidden
+                              />
+
+                              <small>PNG, JPG or WebP. Transparent PNG recommended.</small>
+                              <span class="field-error" data-settings-field-error="profileSignature" hidden></span>
+                            </div>
+                          </div>
+                        </section>
+
+                        <div class="signature-pad-wrapper" data-settings-signature-pad hidden>
+                          <div class="signature-pad-header">
+                            <span class="signature-pad-title">Draw your signature</span>
+                            <span class="signature-pad-hint">Use mouse, stylus, or touch</span>
+                          </div>
+                          <canvas class="signature-pad-canvas" data-settings-signature-canvas width="560" height="180" aria-label="Signature pad"></canvas>
+                          <div class="form-actions" style="justify-content: flex-start; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="button button-secondary" type="button" data-settings-signature-pad-undo>Undo</button>
+                            <button class="button button-secondary" type="button" data-settings-signature-pad-clear>Clear pad</button>
+                            <button class="button button-primary" type="button" data-settings-signature-pad-save>Use drawing</button>
+                            <button class="button button-ghost" type="button" data-settings-signature-pad-cancel>Cancel</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="span-2 settings-section-block">
+                        <h3 class="section-heading">Receipt configuration</h3>
+                        <p class="field-hint">Defaults applied to new receipts.</p>
+                      </div>
+                      <label class="field">
+                        <span class="field-label">Receipt prefix</span>
+                        <input class="input" type="text" maxlength="10" data-settings-input="receiptPrefix" />
+                        <span class="field-error" data-settings-field-error="receiptPrefix" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Default currency</span>
+                        <select class="input" data-settings-input="receiptCurrency">
+                          <option value="INR">INR — Indian rupee</option>
+                          <option value="USD">USD — US dollar</option>
+                          <option value="EUR">EUR — Euro</option>
+                          <option value="GBP">GBP — Pound sterling</option>
+                          <option value="AED">AED — UAE dirham</option>
+                          <option value="AUD">AUD — Australian dollar</option>
+                          <option value="CAD">CAD — Canadian dollar</option>
+                          <option value="SGD">SGD — Singapore dollar</option>
+                        </select>
+                        <span class="field-error" data-settings-field-error="receiptCurrency" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Default tax rate (%)</span>
+                        <input class="input" type="number" min="0" max="100" step="0.01" placeholder="Optional" data-settings-input="receiptTaxRate" />
+                        <span class="field-error" data-settings-field-error="receiptTaxRate" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Receipt numbering format</span>
+                        <input class="input" type="text" maxlength="100" placeholder="{PREFIX}-{YYYY}-{0000}" data-settings-input="receiptNumberFormat" />
+                        <span class="field-hint">Use {PREFIX}, {YYYY}, {YY}, and zero-padded {0000}.</span>
+                        <span class="field-error" data-settings-field-error="receiptNumberFormat" hidden></span>
+                      </label>
                       <label class="field span-2">
-                        <span class="field-label">Logo URL</span>
-                        <input class="input" type="url" maxlength="2000" placeholder="https://… or data:image/…" data-settings-input="businessLogo" />
-                        <span class="field-error" data-settings-field-error="businessLogo" hidden></span>
+                        <span class="field-label">Receipt footer message</span>
+                        <textarea class="input input-textarea" maxlength="500" rows="3" placeholder="Thank you for your payment." data-settings-input="receiptFooterMessage"></textarea>
+                        <span class="field-error" data-settings-field-error="receiptFooterMessage" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Default payment method</span>
+                        <select class="input" data-settings-input="defaultPaymentMethod">
+                          <option value="cash">Cash</option>
+                          <option value="upi">UPI</option>
+                          <option value="bank-transfer">Bank transfer</option>
+                          <option value="cheque">Cheque</option>
+                          <option value="card">Card</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <span class="field-error" data-settings-field-error="defaultPaymentMethod" hidden></span>
                       </label>
                       <label class="field">
                         <span class="field-label">Receipt timezone</span>
                         <input class="input" type="text" maxlength="100" data-settings-input="receiptTimezone" />
                         <span class="field-error" data-settings-field-error="receiptTimezone" hidden></span>
                       </label>
+                      <label class="field span-2" data-settings-business-field>
+                        <span class="field-label">Tax registration details</span>
+                        <textarea class="input input-textarea" maxlength="500" rows="2" placeholder="Optional tax registration information" data-settings-input="taxRegistrationDetails"></textarea>
+                        <span class="field-error" data-settings-field-error="taxRegistrationDetails" hidden></span>
+                      </label>
+                      <div class="span-2 settings-section-block">
+                        <h3 class="section-heading">Appearance</h3>
+                        <p class="field-hint">How dates, numbers, and the interface are displayed.</p>
+                      </div>
                       <label class="field">
                         <span class="field-label">Theme</span>
                         <select class="input" data-settings-theme>
@@ -1905,6 +2178,27 @@
                           <option value="light">Light</option>
                           <option value="dark">Dark</option>
                         </select>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Date format</span>
+                        <select class="input" data-settings-input="dateFormat">
+                          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                          <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                          <option value="D MMM YYYY">D MMM YYYY</option>
+                        </select>
+                        <span class="field-error" data-settings-field-error="dateFormat" hidden></span>
+                      </label>
+                      <label class="field">
+                        <span class="field-label">Number format</span>
+                        <select class="input" data-settings-input="numberFormat">
+                          <option value="en-IN">Indian (1,23,456.78)</option>
+                          <option value="en-US">US (123,456.78)</option>
+                          <option value="en-GB">UK (123,456.78)</option>
+                          <option value="de-DE">German (123.456,78)</option>
+                          <option value="fr-FR">French (123 456,78)</option>
+                        </select>
+                        <span class="field-error" data-settings-field-error="numberFormat" hidden></span>
                       </label>
                     </div>
 
@@ -1939,6 +2233,7 @@
                     <strong data-settings-preview-name>Your business name</strong>
                     <span data-settings-preview-address>Business address</span>
                     <span data-settings-preview-phone>Phone number</span>
+                    <img class="business-preview-signature" alt="Signature preview" data-settings-signature-image hidden />
                   </div>
                 </div>
               </section>

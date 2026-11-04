@@ -15,3 +15,7 @@ export function restoreBackup(
 ): Promise<RestoreSummary> {
   return getDatabaseClient().restoreBackup(backup, mode)
 }
+
+export function deleteAllData(): Promise<null> {
+  return getDatabaseClient().deleteAllData()
+}

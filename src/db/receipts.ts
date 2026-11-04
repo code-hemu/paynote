@@ -2,6 +2,10 @@ import type { Database, SqlValue } from '@sqlite.org/sqlite-wasm'
 
 import { computeReceiptTotals } from '../domain/money.ts'
 import {
+  DEFAULT_RECEIPT_NUMBER_FORMAT,
+  formatReceiptNumber,
+} from '../domain/receipt-number.ts'
+import {
   assertTransition,
   type ReceiptStatus,
 } from '../domain/receipt-status.ts'
@@ -390,6 +394,13 @@ function nextReceiptNumber(db: Database, receiptDate: string, now: string): stri
   )
   const defaultPrefix =
     typeof setting === 'string' && setting.trim() !== '' ? setting.trim() : 'PN'
+  const formatSetting = db.selectValue(
+    `SELECT value FROM settings WHERE key = 'receipt.numberFormat'`,
+  )
+  const format =
+    typeof formatSetting === 'string' && formatSetting.trim() !== ''
+      ? formatSetting.trim()
+      : DEFAULT_RECEIPT_NUMBER_FORMAT
 
   db.exec({
     sql: `INSERT INTO receipt_sequences (year, prefix, next_number, updated_at)
@@ -404,7 +415,11 @@ function nextReceiptNumber(db: Database, receiptDate: string, now: string): stri
   )
   const prefix = rowText(sequence ?? {}, 'prefix') || defaultPrefix
   const nextNumber = Math.max(1, rowNumber(sequence ?? {}, 'next_number'))
-  const receiptNumber = `${prefix}-${year}-${String(nextNumber).padStart(4, '0')}`
+  const receiptNumber = formatReceiptNumber(format, {
+    prefix,
+    year,
+    sequence: nextNumber,
+  })
 
   db.exec({
     sql: `UPDATE receipt_sequences

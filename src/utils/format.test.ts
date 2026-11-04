@@ -1,6 +1,13 @@
 import { describe, expect, it } from '@guchho/test'
 
-import { formatBytes, formatDate, formatSchemaVersion } from './format.ts'
+import {
+  formatBytes,
+  formatCurrency,
+  formatDate,
+  formatSchemaVersion,
+  resetFormatPreferences,
+  setFormatPreferences,
+} from './format.ts'
 
 describe('formatBytes', () => {
   it('formats byte values', () => {
@@ -32,5 +39,27 @@ describe('formatDate', () => {
 
   it('handles invalid input', () => {
     expect(formatDate('not-a-date')).toBe('—')
+  })
+
+  it('uses display preferences for amounts and dates', () => {
+    setFormatPreferences({
+      currency: 'USD',
+      locale: 'en-US',
+      dateFormat: 'MM/DD/YYYY',
+      timeZone: 'UTC',
+    })
+
+    try {
+      expect(formatCurrency(123456)).toBe('$1,234.56')
+      expect(formatDate('2026-11-03')).toBe('11/03/2026')
+      expect(formatDate('2026-11-03', { dateFormat: 'YYYY-MM-DD' })).toBe(
+        '2026-11-03',
+      )
+    } finally {
+      resetFormatPreferences()
+    }
+
+    expect(formatCurrency(123456)).toBe('₹1,234.56')
+    expect(formatDate('2026-11-03')).toBe('03 Nov 2026')
   })
 })

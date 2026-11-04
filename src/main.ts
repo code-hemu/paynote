@@ -7,10 +7,12 @@ import { createReceiptPage } from './app/receipt-page.ts'
 import { createReports } from './app/reports.ts'
 import { applyTheme, createSettingsPage, readTheme } from './app/settings.ts'
 import { installGlobalErrorHandling } from './app/error-handling.ts'
+import { refreshAppPreferences } from './services/preferences.ts'
 
 applyTheme(document, readTheme(document))
 installGlobalErrorHandling(document)
 registerServiceWorker()
+void refreshAppPreferences().catch(() => {})
 
 createApp()
 createDashboard(document)

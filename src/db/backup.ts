@@ -126,6 +126,20 @@ export function restoreBackup(
   })
 }
 
+export function deleteAllData(db: Database): null {
+  return db.transaction('IMMEDIATE', () => {
+    db.exec('DELETE FROM receipt_items')
+    db.exec('DELETE FROM receipt_details')
+    db.exec('DELETE FROM receipts')
+    db.exec('DELETE FROM receipt_sequences')
+    db.exec('DELETE FROM audit_logs')
+    db.exec('DELETE FROM customers')
+    db.exec('DELETE FROM properties')
+    db.exec('DELETE FROM settings')
+    return null
+  })
+}
+
 function buildReceiptCsv(receipts: ReceiptSummary[]): string {
   return toCsv(
     [

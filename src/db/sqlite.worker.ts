@@ -5,7 +5,12 @@ import sqlite3InitModule, {
 } from '@sqlite.org/sqlite-wasm'
 import wasmUrl from '@sqlite.org/sqlite-wasm/sqlite3.wasm'
 
-import { exportBackup, restoreBackup } from './backup.ts'
+import type {
+  BackupFile,
+  RestoreMode,
+} from '../domain/backup.ts'
+
+import { deleteAllData, exportBackup, restoreBackup } from './backup.ts'
 import {
   createCustomer,
   deleteCustomer,
@@ -291,8 +296,11 @@ async function dispatch(request: DbRequest): Promise<unknown> {
     case 'backup.export':
       return exportBackup(db)
     case 'backup.restore': {
-      const params = requireParams(request.params)
+      const params = request.params as { backup: BackupFile; mode: RestoreMode }
       return restoreBackup(db, params.backup, params.mode)
+    }
+    case 'backup.deleteAll': {
+      return deleteAllData(db)
     }
   }
 }

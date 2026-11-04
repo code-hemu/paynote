@@ -27,6 +27,7 @@ import * as customerService from '../services/customers.ts'
 import type { PropertyLoader } from '../services/properties.ts'
 import * as propertyService from '../services/properties.ts'
 import * as receiptService from '../services/receipts.ts'
+import { getAppPreferences } from '../services/preferences.ts'
 import { readSettings } from '../services/settings.ts'
 import { formatCurrency, formatDate, formatLabel } from '../utils/format.ts'
 
@@ -532,56 +533,138 @@ export function createReceiptPage(
     const header = doc.createElement('header')
     header.className = 'receipt-sheet-header'
 
+    const brand = doc.createElement('div')
+    brand.className = 'receipt-sheet-brand'
+
     if (printable.business.logo) {
       const logo = doc.createElement('img')
       logo.className = 'receipt-sheet-logo'
       logo.src = printable.business.logo
       logo.alt = ''
-      header.append(logo)
+      brand.append(logo)
     }
 
-    const businessDetails = doc.createElement('div')
-    const businessName = doc.createElement('h1')
+    const brandCopy = doc.createElement('div')
+    brandCopy.className = 'receipt-sheet-brand-copy'
+    const businessName = doc.createElement('p')
+    businessName.className = 'receipt-sheet-business-name'
     businessName.textContent = printable.business.name || 'PayNote'
-    businessDetails.append(businessName)
+    brandCopy.append(businessName)
 
-    for (const value of [
+    const contactLines = [
       printable.business.address,
-      printable.business.phone,
-      printable.business.email,
-    ]) {
-      if (value) {
-        const line = doc.createElement('p')
-        line.textContent = value
-        businessDetails.append(line)
-      }
+      [printable.business.phone, printable.business.email].filter(Boolean).join(' · '),
+      [printable.business.website, printable.business.taxRegistration]
+        .filter(Boolean)
+        .join(' · '),
+    ].filter(Boolean)
+
+    for (const line of contactLines) {
+      const text = doc.createElement('p')
+      text.className = 'receipt-sheet-business-line'
+      text.textContent = line
+      brandCopy.append(text)
     }
 
-    header.append(businessDetails)
+    brand.append(brandCopy)
+    header.append(brand)
 
-    const title = doc.createElement('h2')
+    const documentBlock = doc.createElement('div')
+    documentBlock.className = 'receipt-sheet-document'
+    const title = doc.createElement('h1')
     title.textContent = 'Receipt'
+    const status = doc.createElement('span')
+    status.className = `receipt-sheet-status receipt-sheet-status-${printable.status.toLowerCase()}`
+    status.textContent = printable.status
+    const documentMeta = doc.createElement('dl')
+    documentMeta.className = 'receipt-sheet-document-meta'
 
-    const meta = doc.createElement('dl')
-    meta.className = 'receipt-sheet-meta'
-    appendPrintRow(meta, 'Receipt number', printable.receiptNumber)
-    appendPrintRow(meta, 'Date', formatDate(printable.receiptDate))
-    appendPrintRow(meta, 'Status', printable.status)
-    appendPrintRow(meta, 'Category', printable.category)
-    appendPrintRow(meta, 'Customer', printable.customerName || 'Walk-in')
-    appendPrintRow(meta, 'Property', printable.propertyName || '—')
-    appendPrintRow(meta, 'Payment method', printable.paymentMethod)
-
-    if (printable.referenceNumber) {
-      appendPrintRow(meta, 'Reference', printable.referenceNumber)
+    function appendDocumentMeta(label: string, value: string) {
+      const row = doc.createElement('div')
+      const term = doc.createElement('dt')
+      term.textContent = label
+      const description = doc.createElement('dd')
+      description.textContent = value
+      row.append(term, description)
+      documentMeta.append(row)
     }
 
-    const body = doc.createElement('div')
-    body.className = 'receipt-sheet-body'
+    appendDocumentMeta('Receipt no.', printable.receiptNumber)
+    appendDocumentMeta('Date', formatDate(printable.receiptDate))
+    documentBlock.append(title, status, documentMeta)
+    header.append(documentBlock)
+    sheet.append(header)
+
+    const parties = doc.createElement('section')
+    parties.className = 'receipt-sheet-parties'
+
+    const receivedFrom = doc.createElement('div')
+    receivedFrom.className = 'receipt-sheet-party'
+    const receivedLabel = doc.createElement('p')
+    receivedLabel.className = 'receipt-sheet-label'
+    receivedLabel.textContent = 'Received from'
+    const receivedName = doc.createElement('p')
+    receivedName.className = 'receipt-sheet-party-name'
+    receivedName.textContent = printable.customerName || 'Walk-in'
+    receivedFrom.append(receivedLabel, receivedName)
+
+    if (printable.propertyName) {
+      const property = doc.createElement('p')
+      property.className = 'receipt-sheet-party-meta'
+      property.textContent = `Property · ${printable.propertyName}`
+      receivedFrom.append(property)
+    }
+
+    const payment = doc.createElement('div')
+    payment.className = 'receipt-sheet-party'
+    const paymentLabel = doc.createElement('p')
+    paymentLabel.className = 'receipt-sheet-label'
+    paymentLabel.textContent = 'Payment details'
+    const paymentName = doc.createElement('p')
+    paymentName.className = 'receipt-sheet-party-name'
+    paymentName.textContent = printable.paymentMethod
+    payment.append(paymentLabel, paymentName)
+
+    const paymentMetaLines = [
+      `Category · ${printable.category}`,
+      printable.referenceNumber ? `Reference · ${printable.referenceNumber}` : '',
+    ].filter(Boolean)
+
+    for (const line of paymentMetaLines) {
+      const text = doc.createElement('p')
+      text.className = 'receipt-sheet-party-meta'
+      text.textContent = line
+      payment.append(text)
+    }
+
+    parties.append(receivedFrom, payment)
+    sheet.append(parties)
+
+    if (printable.details.length > 0) {
+      const fields = doc.createElement('section')
+      fields.className = 'receipt-sheet-fields'
+
+      for (const detail of printable.details) {
+        const row = doc.createElement('div')
+        row.className = 'receipt-sheet-field'
+        const term = doc.createElement('span')
+        term.textContent = detail.label
+        const description = doc.createElement('strong')
+        description.textContent = detail.value
+        row.append(term, description)
+        fields.append(row)
+      }
+
+      sheet.append(fields)
+    }
 
     if (printable.items.length > 0) {
+      const itemsSection = doc.createElement('section')
+      itemsSection.className = 'receipt-sheet-section'
+      const itemsHeading = doc.createElement('h2')
+      itemsHeading.textContent = 'Line items'
       const table = doc.createElement('table')
-      table.className = 'receipt-sheet-table'
+      table.className = 'receipt-sheet-table receipt-sheet-items-table'
       const head = doc.createElement('thead')
       const headRow = doc.createElement('tr')
 
@@ -592,7 +675,7 @@ export function createReceiptPage(
       }
 
       head.append(headRow)
-      const tbody = doc.createElement('tbody')
+      const body = doc.createElement('tbody')
 
       for (const item of printable.items) {
         const row = doc.createElement('tr')
@@ -607,45 +690,120 @@ export function createReceiptPage(
           cell.textContent = value
           row.append(cell)
         }
-        tbody.append(row)
+        body.append(row)
       }
 
-      table.append(head, tbody)
-      body.append(table)
+      table.append(head, body)
+      itemsSection.append(itemsHeading, table)
+      sheet.append(itemsSection)
     }
 
-    const totals = doc.createElement('dl')
+    const totals = doc.createElement('div')
     totals.className = 'receipt-sheet-totals'
-    appendPrintRow(totals, 'Subtotal', formatCurrency(printable.subtotalPaise))
-    appendPrintRow(totals, 'Discount', formatCurrency(printable.discountPaise))
-    appendPrintRow(totals, 'Total', formatCurrency(printable.totalPaise))
-    appendPrintRow(totals, 'In words', printable.amountWords)
 
-    const extras = doc.createElement('dl')
-    extras.className = 'receipt-sheet-meta'
-
-    for (const detail of printable.details) {
-      appendPrintRow(extras, detail.label, detail.value)
+    function appendTotalRow(label: string, value: string) {
+      const row = doc.createElement('div')
+      row.className = 'receipt-sheet-totals-row'
+      const term = doc.createElement('span')
+      term.textContent = label
+      const description = doc.createElement('strong')
+      description.textContent = value
+      row.append(term, description)
+      totals.append(row)
     }
 
+    if (printable.items.length > 0) {
+      appendTotalRow('Subtotal', formatCurrency(printable.subtotalPaise))
+
+      if (printable.discountPaise > 0) {
+        appendTotalRow('Discount', `− ${formatCurrency(printable.discountPaise)}`)
+      }
+    }
+
+    const total = doc.createElement('div')
+    total.className = 'receipt-sheet-total-row'
+    const totalLabel = doc.createElement('span')
+    totalLabel.textContent = 'Total received'
+    const totalValue = doc.createElement('strong')
+    totalValue.textContent = formatCurrency(printable.totalPaise)
+    total.append(totalLabel, totalValue)
+
+    const amountWords = doc.createElement('p')
+    amountWords.className = 'receipt-sheet-words'
+    amountWords.textContent = `Amount in words: ${printable.amountWords}`
+    totals.append(total, amountWords)
+    sheet.append(totals)
+
+    const narrative: Array<[string, string]> = []
     if (printable.description) {
-      appendPrintRow(extras, 'Description', printable.description)
+      narrative.push(['Description', printable.description])
+    }
+    if (printable.notes) {
+      narrative.push(['Notes', printable.notes])
     }
 
-    if (printable.notes) {
-      appendPrintRow(extras, 'Notes', printable.notes)
+    if (narrative.length > 0) {
+      const narrativeSection = doc.createElement('section')
+      narrativeSection.className = 'receipt-sheet-narrative'
+
+      for (const [label, value] of narrative) {
+        const block = doc.createElement('div')
+        block.className = 'receipt-sheet-note'
+        const heading = doc.createElement('h3')
+        heading.textContent = label
+        const text = doc.createElement('p')
+        text.textContent = value
+        block.append(heading, text)
+        narrativeSection.append(block)
+      }
+
+      sheet.append(narrativeSection)
     }
 
     const footer = doc.createElement('footer')
     footer.className = 'receipt-sheet-footer'
+    const closing = doc.createElement('div')
+    closing.className = 'receipt-sheet-closing'
+
+    const acknowledgement = doc.createElement('p')
+    acknowledgement.className = 'receipt-sheet-acknowledgement'
+    acknowledgement.textContent = `This receipt acknowledges the above amount received from ${
+      printable.customerName || 'the customer'
+    }${printable.propertyName ? ` for ${printable.propertyName}` : ''} towards ${printable.category.toLowerCase()}.`
+
     const signature = doc.createElement('div')
-    signature.className = 'receipt-signature'
-    signature.textContent = 'Authorised signatory'
+    signature.className = 'receipt-sheet-signature'
+
+    if (printable.business.signature) {
+      const signatureImage = doc.createElement('img')
+      signatureImage.className = 'receipt-sheet-signature-image'
+      signatureImage.src = printable.business.signature
+      signatureImage.alt = ''
+      signature.append(signatureImage)
+    }
+
+    const signatureLine = doc.createElement('hr')
+    const signatureTitle = doc.createElement('strong')
+    signatureTitle.textContent = 'Authorised Signatory'
+    signature.append(
+      signatureLine,
+      signatureTitle,
+      doc.createElement('br'),
+      printable.business.name || 'PayNote',
+    )
+    closing.append(acknowledgement, signature)
+
+    const footerBar = doc.createElement('div')
+    footerBar.className = 'receipt-sheet-footer-bar'
+    const thanks = doc.createElement('p')
+    thanks.textContent =
+      getAppPreferences().footerMessage || 'Thank you for your payment.'
     const generated = doc.createElement('p')
     generated.textContent = `Generated by PayNote · ${formatDate(new Date().toISOString())}`
-    footer.append(signature, generated)
+    footerBar.append(thanks, generated)
+    footer.append(closing, footerBar)
 
-    sheet.append(header, title, meta, body, totals, extras, footer)
+    sheet.append(footer)
     elements.printArea.append(sheet)
   }
 
@@ -673,6 +831,7 @@ export function createReceiptPage(
   }
 
   function handleDataChanged() {
+    business = null
     void loadListOptions()
     void list.refresh()
   }
@@ -754,14 +913,6 @@ function populateFilter(
   if (current && options.some((option) => option.value === current)) {
     select.value = current
   }
-}
-
-function appendPrintRow(list: HTMLElement, label: string, value: string) {
-  const term = list.ownerDocument.createElement('dt')
-  term.textContent = label
-  const description = list.ownerDocument.createElement('dd')
-  description.textContent = value
-  list.append(term, description)
 }
 
 function formatQuantity(quantity: number): string {

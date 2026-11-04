@@ -230,6 +230,10 @@ export class SqliteClient {
     return this.request('backup.restore', { backup, mode })
   }
 
+  deleteAllData(): Promise<null> {
+    return this.request('backup.deleteAll')
+  }
+
   async close(): Promise<void> {
     if (!this.worker) {
       return

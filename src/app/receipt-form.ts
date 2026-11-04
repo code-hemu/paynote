@@ -27,6 +27,7 @@ import {
 import { amountInWords } from '../domain/words.ts'
 import type { CustomerLoader } from '../services/customers.ts'
 import type { PropertyLoader } from '../services/properties.ts'
+import { getAppPreferences } from '../services/preferences.ts'
 import { formatCurrency, formatDate, formatLabel } from '../utils/format.ts'
 
 import {
@@ -333,8 +334,8 @@ export function createReceiptForm(
     const fields: Array<[keyof ReceiptItemFormValue, string, string, string]> = [
       ['description', 'Description', 'text', 'Item description'],
       ['quantity', 'Qty', 'number', '1'],
-      ['rate', 'Rate (₹)', 'number', '0.00'],
-      ['discount', 'Discount (₹)', 'number', '0.00'],
+      ['rate', 'Rate', 'number', '0.00'],
+      ['discount', 'Discount', 'number', '0.00'],
     ]
 
     for (const [key, labelText, type, placeholder] of fields) {
@@ -567,7 +568,7 @@ export function createReceiptForm(
       propertyId: '',
       receiptDate: formatDateInput(new Date()),
       paymentPeriod: '',
-      paymentMethod: 'cash',
+      paymentMethod: getAppPreferences().defaultPaymentMethod,
       referenceNumber: '',
       description: '',
       notes: '',
@@ -591,7 +592,7 @@ export function createReceiptForm(
       propertyId: values.propertyId ?? '',
       receiptDate: values.receiptDate ?? formatDateInput(new Date()),
       paymentPeriod: values.paymentPeriod ?? '',
-      paymentMethod: values.paymentMethod ?? 'cash',
+      paymentMethod: values.paymentMethod ?? getAppPreferences().defaultPaymentMethod,
       referenceNumber: values.referenceNumber ?? '',
       description: values.description ?? '',
       notes: values.notes ?? '',

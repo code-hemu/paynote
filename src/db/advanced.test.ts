@@ -211,6 +211,23 @@ describe('receipt items and statuses', () => {
     expect(second.receiptNumber).toBe('AT-2026-0002')
     expect(first.receiptNumber).not.toBe(second.receiptNumber)
   })
+
+  it('uses the configured receipt number format', () => {
+    openDatabase()
+    setSettings(db, {
+      'receipt.prefix': 'AT',
+      'receipt.numberFormat': '{PREFIX}/{YY}/{000}',
+    })
+
+    const receipt = createReceipt(db, {
+      receiptType: 'rent',
+      receiptDate: '2026-11-03',
+      amountPaise: 100,
+      paymentMethod: 'cash',
+    })
+
+    expect(receipt.receiptNumber).toBe('AT/26/001')
+  })
 })
 
 describe('reports repository', () => {
