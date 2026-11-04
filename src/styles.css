@@ -2681,6 +2681,23 @@ button {
     -webkit-print-color-adjust: exact;
   }
 
+  .receipt-sheet-qr {
+    font-size: 8pt;
+  }
+
+  .receipt-sheet-qr-code {
+    width: 20mm;
+    height: 20mm;
+  }
+
+  .receipt-sheet-signature-row {
+    margin-top: 8mm;
+  }
+
+  .receipt-sheet-signature-image {
+    max-height: 18mm;
+  }
+
   .receipt-sheet-footer {
     position: fixed;
     right: 0;
