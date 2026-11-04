@@ -5,7 +5,7 @@ import { build } from 'guchho'
 
 import { buildOptions } from './build-options.mjs'
 
-const pwaFiles = ['manifest.webmanifest', 'pwa-icon.svg']
+const pwaFiles = ['manifest.webmanifest', 'pwa-icon.svg', 'robots.txt']
 
 function copyPwaFiles(outdir) {
   for (const file of pwaFiles) {

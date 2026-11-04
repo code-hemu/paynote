@@ -1,4 +1,4 @@
-import type { Receipt } from '../db/types.ts'
+import type { Customer, Receipt } from '../db/types.ts'
 
 import { computeReceiptTotals } from './money.ts'
 import {
@@ -17,6 +17,9 @@ export interface PrintableReceipt {
   status: string
   category: string
   customerName: string
+  customerPhone: string
+  customerEmail: string
+  customerAddress: string
   propertyName: string
   propertyType: string
   paymentMethod: string
@@ -41,6 +44,7 @@ export interface PrintableReceipt {
 export function buildPrintableReceipt(
   receipt: Receipt,
   business: BusinessProfile,
+  customer?: Pick<Customer, 'phone' | 'email' | 'address'> | null,
 ): PrintableReceipt {
   const category = findCategory(receipt.receiptType)
   const totals = computeReceiptTotals(
@@ -69,6 +73,9 @@ export function buildPrintableReceipt(
     status: RECEIPT_STATUS_LABELS[receipt.status],
     category: category?.label ?? receipt.receiptType,
     customerName: receipt.customerName ?? '',
+    customerPhone: customer?.phone ?? '',
+    customerEmail: customer?.email ?? '',
+    customerAddress: customer?.address ?? '',
     propertyName: receipt.propertyName ?? '',
     propertyType: receipt.propertyType ?? '',
     paymentMethod: paymentMethodLabel(receipt.paymentMethod),

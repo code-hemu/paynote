@@ -51,7 +51,6 @@ const mountPoints = [
   'data-settings-business-field',
   'data-settings-individual-field',
   'data-settings-photo-upload',
-  'data-settings-signature-upload',
   'data-settings-signature-draw',
 ]
 
@@ -92,7 +91,9 @@ describe('index.html shell', () => {
 
     expect(indexHtml).toContain('data-settings-individual-field')
     expect(indexHtml).toContain('Digital Signature')
-    expect(indexHtml).toContain('Upload Signature')
+    expect(indexHtml).not.toContain('Upload Signature')
+    expect(indexHtml).not.toContain('data-settings-signature-upload')
+    expect(indexHtml).not.toContain('data-settings-signature-file')
     expect(indexHtml).toContain('Draw Signature')
     expect(indexHtml).toContain('Profile Photo')
   })

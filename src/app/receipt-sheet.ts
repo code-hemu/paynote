@@ -114,6 +114,15 @@ export function renderReceiptSheet(
   receiverName.textContent = printable.customerName || 'Walk-in'
   receiver.append(receiverName)
 
+  for (const line of [
+    printable.customerAddress,
+    [printable.customerPhone, printable.customerEmail]
+      .filter(Boolean)
+      .join(' · '),
+  ].filter(Boolean)) {
+    appendDetailLine(receiver, line)
+  }
+
   if (printable.propertyName) {
     appendDetailLine(receiver, `Property: ${propertyLabel(printable)}`)
   }

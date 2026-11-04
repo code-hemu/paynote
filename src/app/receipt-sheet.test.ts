@@ -19,6 +19,9 @@ function printable(): PrintableReceipt {
     status: 'Paid',
     category: 'Rent',
     customerName: 'Asha Rao',
+    customerPhone: '9876543210',
+    customerEmail: 'asha@example.com',
+    customerAddress: '42 River Lane',
     propertyName: '',
     propertyType: '',
     paymentMethod: 'UPI',
@@ -82,5 +85,19 @@ describe('receipt sheet', () => {
         ?.innerHTML ?? '',
     ).toContain('<svg')
     expect(collectText(sheet)).toContain('Authorised Signatory')
+  })
+
+  it('shows the customer address, mobile, and email in the receiver box', () => {
+    const document = new FakeDocument(new FakeWindow())
+    const sheet = renderReceiptSheet(
+      document as unknown as Document,
+      printable(),
+    ) as unknown as FakeElement
+    const text = collectText(sheet)
+
+    expect(text).toContain('Received From')
+    expect(text).toContain('42 River Lane')
+    expect(text).toContain('9876543210')
+    expect(text).toContain('asha@example.com')
   })
 })

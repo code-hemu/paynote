@@ -2525,7 +2525,7 @@ button {
 .receipt-sheet-signature-row {
   display: flex;
   align-items: flex-end;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 1.75rem;
   margin-top: 2.25rem;
   break-inside: avoid;
@@ -2557,6 +2557,7 @@ button {
 .receipt-sheet-signature {
   width: 15rem;
   flex: none;
+  margin-left: auto;
   color: #253247;
   font-size: 0.8125rem;
   text-align: center;

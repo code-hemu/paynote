@@ -11,7 +11,7 @@ import { renderReceiptSheet } from './receipt-sheet.ts'
 export async function openSharedReceipt(
   doc: Document,
   token: ReceiptShareToken,
-): Promise<void> {
+): Promise<boolean> {
   const root = required<HTMLElement>(doc, '[data-shared-receipt]')
   const loading = required<HTMLElement>(doc, '[data-shared-receipt-loading]')
   const errorPanel = required<HTMLElement>(doc, '[data-shared-receipt-error]')
@@ -45,6 +45,7 @@ export async function openSharedReceipt(
     )
     loading.hidden = true
     doc.title = `${details.receiptNumber} · PayNote`
+    return true
   } catch (error) {
     loading.hidden = true
     errorMessage.textContent =
@@ -53,6 +54,31 @@ export async function openSharedReceipt(
         : 'This receipt link is invalid or has been altered.'
     errorPanel.hidden = false
     doc.title = 'Receipt link unavailable · PayNote'
+    return false
+  }
+}
+
+export function markSharedReceiptNoIndex(doc: Document): void {
+  if (doc.querySelector('meta[name="robots"]')) {
+    return
+  }
+
+  const meta = doc.createElement('meta')
+  meta.setAttribute('name', 'robots')
+  meta.setAttribute('content', 'noindex, nofollow')
+  doc.head.append(meta)
+}
+
+export function clearSharedReceiptUrl(
+  view: Pick<Window, 'location' | 'history'>,
+): void {
+  try {
+    const url = new URL(view.location.href)
+    url.search = ''
+    url.hash = ''
+    view.history.replaceState(view.history.state, '', url.pathname)
+  } catch {
+    return
   }
 }
 
@@ -72,6 +98,9 @@ function printableFromShare(
     status: details.status,
     category: details.category,
     customerName: details.customerName,
+    customerPhone: '',
+    customerEmail: '',
+    customerAddress: '',
     propertyName: details.propertyName,
     propertyType: '',
     paymentMethod: '',

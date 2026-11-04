@@ -8,7 +8,7 @@ import { buildOptions } from './build-options.mjs'
 const host = '127.0.0.1'
 const port = 5173
 const outdir = '.guchho'
-const pwaFiles = ['manifest.webmanifest', 'pwa-icon.svg']
+const pwaFiles = ['manifest.webmanifest', 'pwa-icon.svg', 'robots.txt']
 
 function copyPwaFiles() {
   for (const file of pwaFiles) {

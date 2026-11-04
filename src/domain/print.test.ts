@@ -97,6 +97,22 @@ describe('printable receipt', () => {
     expect(business.business.name).toBe('Asha Traders')
   })
 
+  it('includes customer address, mobile, and email when available', () => {
+    const printable = buildPrintableReceipt(
+      makeReceipt(),
+      { name: '', address: '', phone: '', email: '', logo: '' },
+      {
+        phone: '9876543210',
+        email: 'asha@example.com',
+        address: '42 River Lane',
+      },
+    )
+
+    expect(printable.customerPhone).toBe('9876543210')
+    expect(printable.customerEmail).toBe('asha@example.com')
+    expect(printable.customerAddress).toBe('42 River Lane')
+  })
+
   it('uses the stored amount when a receipt has no line items', () => {
     const printable = buildPrintableReceipt(
       makeReceipt({ items: [], details: [], paymentPeriod: null }),

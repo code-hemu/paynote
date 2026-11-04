@@ -51,6 +51,7 @@ export interface ReceiptPageDeps {
   update?: typeof receiptService.updateReceipt
   remove?: typeof receiptService.deleteReceipt
   loadCustomers?: CustomerLoader
+  loadCustomer?: (id: string) => Promise<Customer>
   loadProperties?: PropertyLoader
   createCustomer?: (input: CustomerInput) => Promise<Customer>
   createProperty?: (input: PropertyInput) => Promise<Property>
@@ -168,6 +169,7 @@ export function createReceiptPage(
   const update = deps.update ?? receiptService.updateReceipt
   const remove = deps.remove ?? receiptService.deleteReceipt
   const loadCustomers = deps.loadCustomers ?? customerService.listCustomers
+  const loadCustomer = deps.loadCustomer ?? customerService.getCustomer
   const loadProperties = deps.loadProperties ?? propertyService.listProperties
 
   let detailId: string | null = null
@@ -516,9 +518,16 @@ export function createReceiptPage(
     }
 
     try {
+      const [business, customer] = await Promise.all([
+        loadBusiness(),
+        detailReceipt.customerId
+          ? loadCustomer(detailReceipt.customerId).catch(() => null)
+          : Promise.resolve(null),
+      ])
       const printable = buildPrintableReceipt(
         detailReceipt,
-        await loadBusiness(),
+        business,
+        customer,
       )
       const qr = await createReceiptShareQr(printable)
       elements.printArea.replaceChildren(

@@ -8,7 +8,11 @@ import { createReceiptPage } from './app/receipt-page.ts'
 import { createReports } from './app/reports.ts'
 import { applyTheme, createSettingsPage, readTheme } from './app/settings.ts'
 import { installGlobalErrorHandling } from './app/error-handling.ts'
-import { openSharedReceipt } from './app/shared-receipt.ts'
+import {
+  clearSharedReceiptUrl,
+  markSharedReceiptNoIndex,
+  openSharedReceipt,
+} from './app/shared-receipt.ts'
 import { refreshAppPreferences } from './services/preferences.ts'
 import { readReceiptShareToken } from './services/receipt-share.ts'
 
@@ -20,7 +24,12 @@ let bootstrapped = false
 const shareToken = readReceiptShareToken(location.href)
 
 if (shareToken) {
-  void openSharedReceipt(document, shareToken)
+  markSharedReceiptNoIndex(document)
+  void openSharedReceipt(document, shareToken).then((loaded) => {
+    if (loaded) {
+      clearSharedReceiptUrl(window)
+    }
+  })
 } else {
   createPinGate(document, {
     onUnlocked: () => {

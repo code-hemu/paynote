@@ -7,7 +7,11 @@ import {
 } from '../services/receipt-share.ts'
 import { FakeDocument, FakeElement, FakeWindow } from '../test/fake-dom.ts'
 
-import { openSharedReceipt } from './shared-receipt.ts'
+import {
+  clearSharedReceiptUrl,
+  markSharedReceiptNoIndex,
+  openSharedReceipt,
+} from './shared-receipt.ts'
 
 interface Fixture {
   document: FakeDocument
@@ -64,6 +68,9 @@ function printable(): PrintableReceipt {
     status: 'Paid',
     category: 'Rent',
     customerName: 'Asha Rao',
+    customerPhone: '',
+    customerEmail: '',
+    customerAddress: '',
     propertyName: 'Main Shop',
     propertyType: 'shop',
     paymentMethod: 'UPI',
@@ -130,5 +137,58 @@ describe('shared receipt page', () => {
       'invalid or has been altered',
     )
     expect(fixture.sheet.children.length).toBe(0)
+  })
+
+  it('returns whether the receipt was rendered', async () => {
+    const fixture = createFixture()
+    const link = await createReceiptShareLink(
+      'https://example.com/',
+      printable(),
+    )
+    const token = readReceiptShareToken(link.url)!
+
+    const loaded = await openSharedReceipt(
+      fixture.document as unknown as Document,
+      token,
+    )
+    const failed = await openSharedReceipt(
+      fixture.document as unknown as Document,
+      { ciphertext: 'invalid', key: '' },
+    )
+
+    expect(loaded).toBe(true)
+    expect(failed).toBe(false)
+  })
+
+  it('marks shared receipt pages as noindex', () => {
+    const head = new FakeElement()
+    const doc = Object.assign(new FakeDocument(new FakeWindow()), { head })
+
+    markSharedReceiptNoIndex(doc as unknown as Document)
+
+    const meta = head.children[0]
+    expect(meta?.getAttribute('name')).toBe('robots')
+    expect(meta?.getAttribute('content')).toBe('noindex, nofollow')
+  })
+
+  it('removes the share query and key from the address bar', () => {
+    let replaced: Array<unknown> = []
+    const view = {
+      location: {
+        href: 'https://code-hemu.github.io/paynote/?p=ciphertext#k=key',
+      },
+      history: {
+        state: { existing: true },
+        replaceState: (...args: Array<unknown>) => {
+          replaced = args
+        },
+      },
+    }
+
+    clearSharedReceiptUrl(view as unknown as Pick<Window, 'location' | 'history'>)
+
+    expect(replaced[0]).toEqual({ existing: true })
+    expect(replaced[1]).toBe('')
+    expect(replaced[2]).toBe('/paynote/')
   })
 })

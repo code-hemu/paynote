@@ -56,8 +56,6 @@ interface SettingsElements {
   profilePhotoPlaceholder: HTMLElement | null
   signaturePreview: HTMLImageElement | null
   signaturePlaceholder: HTMLElement | null
-  signatureFile: HTMLInputElement | null
-  signatureUpload: HTMLButtonElement | null
   signatureDraw: HTMLButtonElement | null
   signatureClear: HTMLButtonElement | null
   signaturePad: HTMLElement | null
@@ -371,12 +369,6 @@ function queryElements(doc: Document): SettingsElements {
     signaturePlaceholder: doc.querySelector<HTMLElement>(
       '[data-settings-signature-placeholder]',
     ),
-    signatureFile: doc.querySelector<HTMLInputElement>(
-      '[data-settings-signature-file]',
-    ),
-    signatureUpload: doc.querySelector<HTMLButtonElement>(
-      '[data-settings-signature-upload]',
-    ),
     signatureDraw: doc.querySelector<HTMLButtonElement>(
       '[data-settings-signature-draw]',
     ),
@@ -645,77 +637,6 @@ export function createSettingsPage(
     })
   }
 
-  function loadImage(src: string): Promise<HTMLImageElement> {
-    return new Promise((resolve, reject) => {
-      const image = new Image()
-      image.onload = () => resolve(image)
-      image.onerror = () => reject(new Error('Could not read the image.'))
-      image.src = src
-    })
-  }
-
-  async function prepareSignatureImage(
-    dataUrl: string,
-    maxLength: number,
-  ): Promise<string> {
-    const image = await loadImage(dataUrl)
-    const maxWidth = 1600
-    const maxHeight = 640
-    const scale = Math.min(
-      1,
-      maxWidth / Math.max(1, image.naturalWidth),
-      maxHeight / Math.max(1, image.naturalHeight),
-    )
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
-    const context = canvas.getContext('2d')
-
-    if (!context) {
-      return dataUrl
-    }
-
-    context.imageSmoothingEnabled = true
-    context.imageSmoothingQuality = 'high'
-    context.drawImage(image, 0, 0, canvas.width, canvas.height)
-
-    const candidates = [
-      canvas.toDataURL('image/png'),
-      canvas.toDataURL('image/webp', 0.95),
-      canvas.toDataURL('image/webp', 0.85),
-    ]
-    const jpegCanvas = document.createElement('canvas')
-    jpegCanvas.width = canvas.width
-    jpegCanvas.height = canvas.height
-    const jpegContext = jpegCanvas.getContext('2d')
-
-    if (jpegContext) {
-      jpegContext.fillStyle = '#ffffff'
-      jpegContext.fillRect(0, 0, jpegCanvas.width, jpegCanvas.height)
-      jpegContext.imageSmoothingEnabled = true
-      jpegContext.imageSmoothingQuality = 'high'
-      jpegContext.drawImage(canvas, 0, 0)
-      candidates.push(
-        jpegCanvas.toDataURL('image/jpeg', 0.92),
-        jpegCanvas.toDataURL('image/jpeg', 0.85),
-      )
-    }
-
-    let smallest = candidates[0] ?? dataUrl
-
-    for (const candidate of candidates) {
-      if (candidate.length < smallest.length) {
-        smallest = candidate
-      }
-
-      if (candidate.length <= maxLength) {
-        return candidate
-      }
-    }
-
-    return smallest
-  }
-
   async function handlePhotoUpload(file: File) {
     setError('')
     setNotice('')
@@ -741,37 +662,6 @@ export function createSettingsPage(
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not upload the photo.')
-    }
-  }
-
-  async function handleSignatureUpload(file: File) {
-    setError('')
-    setNotice('')
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Digital signature must be smaller than 5 MB.')
-      return
-    }
-
-    try {
-      const rawDataUrl = await readFileAsDataUrl(file)
-      const dataUrl = await prepareSignatureImage(rawDataUrl, SIGNATURE_MAX_LENGTH)
-      if (dataUrl.length > SIGNATURE_MAX_LENGTH) {
-        setError('Digital signature is too large. Please use a smaller image.')
-        return
-      }
-
-      const input = doc.querySelector<HTMLInputElement>(
-        '[data-settings-input="profileSignature"]',
-      )
-      if (input) {
-        input.value = dataUrl
-        handleInput()
-      }
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : 'Could not upload the signature.',
-      )
     }
   }
 
@@ -1032,16 +922,6 @@ export function createSettingsPage(
     }
   }
 
-  function onSignatureFileChange() {
-    const file = elements.signatureFile?.files?.[0]
-    if (file) {
-      void handleSignatureUpload(file)
-      if (elements.signatureFile) {
-        elements.signatureFile.value = ''
-      }
-    }
-  }
-
   function closeProfileDialog() {
     if (elements.profileDialog.open) {
       elements.profileDialog.close()
@@ -1176,10 +1056,6 @@ export function createSettingsPage(
     setError('')
     elements.photoFile?.click()
   })
-  elements.signatureUpload?.addEventListener('click', () => {
-    setError('')
-    elements.signatureFile?.click()
-  })
   elements.signatureDraw?.addEventListener('click', openSignaturePad)
   elements.photoClear?.addEventListener('click', clearPhoto)
   elements.signatureClear?.addEventListener('click', clearSignature)
@@ -1194,7 +1070,6 @@ export function createSettingsPage(
   elements.signaturePadSave?.addEventListener('click', saveSignatureFromPad)
   elements.signaturePadCancel?.addEventListener('click', closeSignaturePad)
   elements.photoFile?.addEventListener('change', onPhotoFileChange)
-  elements.signatureFile?.addEventListener('change', onSignatureFileChange)
 
   function handleDataChanged() {
     formDirty = false
@@ -1233,10 +1108,6 @@ export function createSettingsPage(
         setError('')
         elements.photoFile?.click()
       })
-      elements.signatureUpload?.removeEventListener('click', () => {
-        setError('')
-        elements.signatureFile?.click()
-      })
       elements.signatureDraw?.removeEventListener('click', openSignaturePad)
       elements.photoClear?.removeEventListener('click', clearPhoto)
       elements.signatureClear?.removeEventListener('click', clearSignature)
@@ -1248,7 +1119,6 @@ export function createSettingsPage(
       elements.signaturePadSave?.removeEventListener('click', saveSignatureFromPad)
       elements.signaturePadCancel?.removeEventListener('click', closeSignaturePad)
       elements.photoFile?.removeEventListener('change', onPhotoFileChange)
-      elements.signatureFile?.removeEventListener('change', onSignatureFileChange)
       view?.removeEventListener('resize', handleResize)
       view?.removeEventListener('paynote:data-changed', handleDataChanged)
       signaturePad?.destroy()
