@@ -27,7 +27,7 @@ import type { CustomerLoader } from '../services/customers.ts'
 import * as customerService from '../services/customers.ts'
 import type { PropertyLoader } from '../services/properties.ts'
 import * as propertyService from '../services/properties.ts'
-import { createQrSvgDataUrl } from '../services/qr.ts'
+import { createQrSvg } from '../services/qr.ts'
 import { createReceiptShareLink } from '../services/receipt-share.ts'
 import * as receiptService from '../services/receipts.ts'
 import { readSettings } from '../services/settings.ts'
@@ -558,7 +558,7 @@ export function createReceiptPage(
       const share = await createReceiptShareLink(base.href, printable)
 
       return {
-        imageUrl: await createQrSvgDataUrl(share.url),
+        svg: await createQrSvg(share.url),
         link: share.url,
       }
     } catch (error) {

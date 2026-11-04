@@ -1,11 +1,10 @@
-export async function createQrSvgDataUrl(value: string): Promise<string> {
+export async function createQrSvg(value: string): Promise<string> {
   const qrcode = await import('qrcode')
-  const svg = await qrcode.toString(value, {
+
+  return qrcode.toString(value, {
     type: 'svg',
     errorCorrectionLevel: 'M',
     margin: 1,
-    width: 256,
+    width: 512,
   })
-
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }

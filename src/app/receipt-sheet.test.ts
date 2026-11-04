@@ -63,7 +63,7 @@ describe('receipt sheet', () => {
       printable(),
       {
         qr: {
-          imageUrl: 'data:image/svg+xml,test',
+          svg: '<svg viewBox="0 0 1 1"></svg>',
           link: 'https://example.com/?p=test#k=test',
         },
       },
@@ -73,13 +73,14 @@ describe('receipt sheet', () => {
       'receipt-sheet-signature-row',
     )
     const qr = findByClass(sheet, 'receipt-sheet-qr')
+    const qrGraphic = findByClass(sheet, 'receipt-sheet-qr-code')
     const signature = findByClass(sheet, 'receipt-sheet-signature')
-    const qrImage = qr?.children[0]
 
     expect(signatureRow?.children).toEqual([qr, signature])
     expect(
-      (qrImage as unknown as { alt?: string } | undefined)?.alt ?? '',
-    ).toContain('PN-2026-0001')
+      (qrGraphic as unknown as { innerHTML?: string } | undefined)
+        ?.innerHTML ?? '',
+    ).toContain('<svg')
     expect(collectText(sheet)).toContain('Authorised Signatory')
   })
 })

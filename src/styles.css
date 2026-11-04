@@ -2542,10 +2542,16 @@ button {
   text-align: center;
 }
 
-.receipt-sheet-qr img {
+.receipt-sheet-qr-code {
+  width: 9rem;
+  height: 9rem;
+  background: #fff;
+}
+
+.receipt-sheet-qr-code svg {
   display: block;
-  width: 7.5rem;
-  height: 7.5rem;
+  width: 100%;
+  height: 100%;
 }
 
 .receipt-sheet-signature {

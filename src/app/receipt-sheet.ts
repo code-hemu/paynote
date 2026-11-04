@@ -3,7 +3,7 @@ import { getAppPreferences } from '../services/preferences.ts'
 import { formatCurrency, formatDate, formatLabel } from '../utils/format.ts'
 
 export interface ReceiptQr {
-  imageUrl: string
+  svg: string
   link: string
 }
 
@@ -268,12 +268,16 @@ export function renderReceiptSheet(
   if (options.qr) {
     const qrBlock = doc.createElement('div')
     qrBlock.className = 'receipt-sheet-qr'
-    const qrImage = doc.createElement('img')
-    qrImage.src = options.qr.imageUrl
-    qrImage.alt = `Scan to view receipt ${printable.receiptNumber}`
+    qrBlock.setAttribute(
+      'aria-label',
+      `Scan to view receipt ${printable.receiptNumber}`,
+    )
+    const qrGraphic = doc.createElement('div')
+    qrGraphic.className = 'receipt-sheet-qr-code'
+    qrGraphic.innerHTML = options.qr.svg
     const qrLabel = doc.createElement('span')
     qrLabel.textContent = 'Scan to view receipt'
-    qrBlock.append(qrImage, qrLabel)
+    qrBlock.append(qrGraphic, qrLabel)
     signatureRow.append(qrBlock)
   }
 
