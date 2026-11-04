@@ -102,6 +102,38 @@ describe('index.html shell', () => {
     expect(indexHtml).not.toContain('frame-ancestors')
   })
 
+  it('declares the PIN lock screen and starts the app locked', () => {
+    for (const marker of [
+      'data-pin-screen',
+      'data-pin-panel',
+      'data-pin-setup-form',
+      'data-pin-unlock-form',
+      'data-pin-setup-submit',
+      'data-pin-unlock-submit',
+      'data-pin-forgot',
+      'data-pin-reset-panel',
+      'data-pin-reset-confirm',
+      'data-pin-reset-cancel',
+      'data-pin-lock',
+      'data-app-shell hidden',
+    ]) {
+      expect(indexHtml).toContain(marker)
+    }
+  })
+
+  it('declares the standalone shared receipt view', () => {
+    for (const marker of [
+      'data-shared-receipt',
+      'data-shared-receipt-loading',
+      'data-shared-receipt-error',
+      'data-shared-receipt-error-message',
+      'data-shared-receipt-sheet',
+      'data-shared-receipt-open',
+    ]) {
+      expect(indexHtml).toContain(marker)
+    }
+  })
+
   it('declares every navigation destination', () => {
     for (const item of navigation) {
       expect(indexHtml).toContain(`href="#${item.path}" data-nav`)

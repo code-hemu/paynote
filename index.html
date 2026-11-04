@@ -111,7 +111,180 @@
       </defs>
     </svg>
 
-    <div class="app">
+    <section
+      class="shared-receipt"
+      data-shared-receipt
+      aria-labelledby="shared-receipt-title"
+      hidden
+    >
+      <div class="shared-receipt-shell">
+        <header class="shared-receipt-header">
+          <div class="shared-receipt-brand">
+            <span class="brand-mark">
+              <svg class="icon" aria-hidden="true"><use href="#icon-receipt"></use></svg>
+            </span>
+            <span class="brand-copy">
+              <strong>PayNote</strong>
+              <small>Shared receipt</small>
+            </span>
+          </div>
+          <a class="button button-small button-secondary" href="./" data-shared-receipt-open>
+            Open PayNote
+          </a>
+        </header>
+
+        <h1 class="sr-only" id="shared-receipt-title">Shared receipt</h1>
+        <p class="shared-receipt-loading" data-shared-receipt-loading role="status">
+          Opening receipt…
+        </p>
+        <div class="card error-card" data-shared-receipt-error role="alert" hidden>
+          <svg class="card-icon icon-danger" aria-hidden="true"><use href="#icon-alert"></use></svg>
+          <div>
+            <h2 class="card-title">Receipt unavailable</h2>
+            <p class="card-description" data-shared-receipt-error-message>
+              This receipt link is invalid or has been altered.
+            </p>
+          </div>
+        </div>
+        <div class="shared-receipt-sheet" data-shared-receipt-sheet></div>
+      </div>
+    </section>
+
+    <section class="pin-screen" data-pin-screen aria-labelledby="pin-title">
+      <div class="pin-card">
+        <div class="pin-brand">
+          <span class="brand-mark">
+            <svg class="icon" aria-hidden="true"><use href="#icon-receipt"></use></svg>
+          </span>
+          <span class="brand-copy">
+            <strong>PayNote</strong>
+            <small>Receipts &amp; Payments</small>
+          </span>
+        </div>
+
+        <div class="pin-panel" data-pin-panel>
+          <div class="pin-heading">
+            <h1 class="pin-title" id="pin-title" data-pin-title>Enter your PIN</h1>
+            <p class="pin-description" data-pin-description>
+              Unlock PayNote to reach the records stored on this device.
+            </p>
+          </div>
+
+          <p class="notice" data-pin-notice role="status" hidden></p>
+
+          <form class="form pin-form" data-pin-setup-form novalidate hidden>
+            <label class="field">
+              <span class="field-label">New PIN</span>
+              <input
+                class="input pin-input"
+                type="password"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="4"
+                autocomplete="new-password"
+                data-pinsetup-input="pin"
+              />
+              <span class="field-error" data-pinsetup-field-error="pin" hidden></span>
+            </label>
+            <label class="field">
+              <span class="field-label">Confirm PIN</span>
+              <input
+                class="input pin-input"
+                type="password"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="4"
+                autocomplete="new-password"
+                data-pinsetup-input="confirmPin"
+              />
+              <span
+                class="field-error"
+                data-pinsetup-field-error="confirmPin"
+                hidden
+              ></span>
+            </label>
+            <p class="form-error" data-pinsetup-form-error role="alert" hidden></p>
+            <button
+              class="button button-primary pin-submit"
+              type="submit"
+              data-pin-setup-submit
+            >
+              Set PIN
+            </button>
+            <p class="pin-hint">
+              Keep this PIN somewhere safe. You can reset it later from the unlock
+              screen if you forget it.
+            </p>
+          </form>
+
+          <form class="form pin-form" data-pin-unlock-form novalidate hidden>
+            <label class="field">
+              <span class="field-label">PIN</span>
+              <input
+                class="input pin-input"
+                type="password"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="4"
+                autocomplete="current-password"
+                data-pinunlock-input="pin"
+              />
+              <span
+                class="field-error"
+                data-pinunlock-field-error="pin"
+                hidden
+              ></span>
+            </label>
+            <p class="form-error" data-pinunlock-form-error role="alert" hidden></p>
+            <button
+              class="button button-primary pin-submit"
+              type="submit"
+              data-pin-unlock-submit
+            >
+              Unlock
+            </button>
+            <button
+              class="link-button pin-forgot"
+              type="button"
+              data-pin-forgot
+            >
+              Forgot PIN?
+            </button>
+          </form>
+
+          <div class="pin-reset" data-pin-reset-panel hidden>
+            <p class="pin-hint">
+              Resetting removes the current PIN and lets you create a new one. Your
+              records stay on this device. Anyone with access to this browser can
+              then set a new PIN and open PayNote.
+            </p>
+            <div class="form-actions">
+              <button
+                class="button button-danger"
+                type="button"
+                data-pin-reset-confirm
+              >
+                Reset PIN
+              </button>
+              <button
+                class="button button-secondary"
+                type="button"
+                data-pin-reset-cancel
+              >
+                Back
+              </button>
+            </div>
+          </div>
+
+          <p class="pin-footer">
+            Your records stay offline on this device. The PIN only locks the
+            PayNote interface and does not encrypt the database.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="app" data-app-shell hidden>
       <aside class="sidebar">
         <a class="brand" href="#/" aria-label="PayNote dashboard">
           <span class="brand-mark">
@@ -171,6 +344,14 @@
             <p class="topbar-section" data-section-title>Dashboard</p>
           </div>
           <div class="topbar-meta">
+            <button
+              class="button button-secondary button-small"
+              type="button"
+              data-pin-lock
+              hidden
+            >
+              Lock
+            </button>
             <span
               class="status status-loading"
               data-storage-status
