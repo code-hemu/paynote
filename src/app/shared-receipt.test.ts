@@ -68,9 +68,9 @@ function printable(): PrintableReceipt {
     status: 'Paid',
     category: 'Rent',
     customerName: 'Asha Rao',
-    customerPhone: '',
-    customerEmail: '',
-    customerAddress: '',
+    customerPhone: '9123456780',
+    customerEmail: 'customer@example.com',
+    customerAddress: '42 River Lane',
     propertyName: 'Main Shop',
     propertyType: 'shop',
     paymentMethod: 'UPI',
@@ -115,7 +115,9 @@ describe('shared receipt page', () => {
 
     const text = collectText(fixture.sheet)
     expect(text).toContain('Asha Traders')
+    expect(text).toContain('12 Lake Road · 9876543210 · asha@example.com')
     expect(text).toContain('Asha Rao')
+    expect(text).toContain('42 River Lane · 9123456780 · customer@example.com')
     expect(text).toContain('Main Shop')
     expect(text).toContain('Authorised Signatory')
     expect(text).toContain('1,250.50')

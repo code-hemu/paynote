@@ -96,8 +96,7 @@ describe('receipt sheet', () => {
     const text = collectText(sheet)
 
     expect(text).toContain('Received From')
-    expect(text).toContain('42 River Lane')
-    expect(text).toContain('9876543210')
-    expect(text).toContain('asha@example.com')
+    expect(text).toContain('42 River Lane · 9876543210 · asha@example.com')
+    expect(text).toContain('Asha Traders')
   })
 })

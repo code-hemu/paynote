@@ -3,10 +3,16 @@ import type { PrintableReceipt } from '../domain/print.ts'
 export interface ReceiptShareDetails {
   version: 1
   businessName: string
+  businessAddress: string
+  businessPhone: string
+  businessEmail: string
   receiptNumber: string
   receiptDate: string
   status: string
   customerName: string
+  customerPhone: string
+  customerEmail: string
+  customerAddress: string
   propertyName: string
   category: string
   amountPaise: number
@@ -25,10 +31,16 @@ export interface ReceiptShareLink {
 interface ShareWirePayload {
   v: 1
   b: string
+  ba: string
+  bp: string
+  be: string
   n: string
   d: string
   s: string
   c: string
+  cp: string
+  ce: string
+  ca: string
   p: string
   k: string
   a: number
@@ -52,10 +64,16 @@ export function receiptShareDetails(
   return {
     version: SHARE_VERSION,
     businessName: printable.business.name,
+    businessAddress: printable.business.address,
+    businessPhone: printable.business.phone,
+    businessEmail: printable.business.email,
     receiptNumber: printable.receiptNumber,
     receiptDate: printable.receiptDate,
     status: printable.status,
     customerName: printable.customerName,
+    customerPhone: printable.customerPhone,
+    customerEmail: printable.customerEmail,
+    customerAddress: printable.customerAddress,
     propertyName: printable.propertyName,
     category: printable.category,
     amountPaise: printable.totalPaise,
@@ -171,10 +189,16 @@ function toWirePayload(details: ReceiptShareDetails): ShareWirePayload {
   return {
     v: SHARE_VERSION,
     b: details.businessName,
+    ba: details.businessAddress,
+    bp: details.businessPhone,
+    be: details.businessEmail,
     n: details.receiptNumber,
     d: details.receiptDate,
     s: details.status,
     c: details.customerName,
+    cp: details.customerPhone,
+    ce: details.customerEmail,
+    ca: details.customerAddress,
     p: details.propertyName,
     k: details.category,
     a: details.amountPaise,
@@ -204,10 +228,16 @@ function parseDetails(value: unknown): ReceiptShareDetails {
   return {
     version: SHARE_VERSION,
     businessName: readString(payload.b),
+    businessAddress: readOptionalString(payload.ba),
+    businessPhone: readOptionalString(payload.bp),
+    businessEmail: readOptionalString(payload.be),
     receiptNumber: readString(payload.n),
     receiptDate: readString(payload.d),
     status: readString(payload.s),
     customerName: readString(payload.c),
+    customerPhone: readOptionalString(payload.cp),
+    customerEmail: readOptionalString(payload.ce),
+    customerAddress: readOptionalString(payload.ca),
     propertyName: readString(payload.p),
     category: readString(payload.k),
     amountPaise: amountPaise as number,
@@ -220,6 +250,10 @@ function readString(value: unknown): string {
   }
 
   return value
+}
+
+function readOptionalString(value: unknown): string {
+  return value === undefined ? '' : readString(value)
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {

@@ -90,8 +90,11 @@ export function renderReceiptSheet(
   issuer.append(issuerName)
 
   for (const line of [
-    printable.business.address,
-    [printable.business.phone, printable.business.email]
+    [
+      printable.business.address,
+      printable.business.phone,
+      printable.business.email,
+    ]
       .filter(Boolean)
       .join(' · '),
     [printable.business.website, printable.business.taxRegistration]
@@ -114,13 +117,16 @@ export function renderReceiptSheet(
   receiverName.textContent = printable.customerName || 'Walk-in'
   receiver.append(receiverName)
 
-  for (const line of [
+  const receiverLine = [
     printable.customerAddress,
-    [printable.customerPhone, printable.customerEmail]
-      .filter(Boolean)
-      .join(' · '),
-  ].filter(Boolean)) {
-    appendDetailLine(receiver, line)
+    printable.customerPhone,
+    printable.customerEmail,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  if (receiverLine) {
+    appendDetailLine(receiver, receiverLine)
   }
 
   if (printable.propertyName) {
