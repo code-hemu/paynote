@@ -106,6 +106,7 @@ export interface ReceiptSummary {
   customerName: string | null
   propertyId: string | null
   propertyName: string | null
+  propertyType?: PropertyType | null
   receiptDate: string
   paymentPeriod: string | null
   amountPaise: number

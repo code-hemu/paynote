@@ -2080,6 +2080,19 @@ button {
   object-fit: contain;
 }
 
+.receipt-sheet-icon {
+  display: block;
+  box-sizing: content-box;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0 auto 0.75rem;
+  border: 1px solid #dce5f0;
+  border-radius: 50%;
+  background: #f2f6fb;
+  padding: 0.5rem;
+  color: #173c65;
+}
+
 .receipt-sheet-header h1 {
   margin: 0;
   color: #173c65;
@@ -2115,6 +2128,16 @@ button {
   font-size: 0.8125rem;
 }
 
+.receipt-sheet-header .receipt-sheet-meta {
+  margin: 1.125rem 0 0;
+  border-top: 1px solid #e5e9ef;
+  padding-top: 0.75rem;
+}
+
+.receipt-sheet-header .receipt-sheet-meta strong {
+  color: #173c65;
+}
+
 .receipt-sheet-parties {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2124,6 +2147,7 @@ button {
 
 .receipt-sheet-party-box {
   border: 1px solid #dce2ea;
+  border-top: 2px solid #173c65;
   background: #f8fafc;
   padding: 1rem 1.125rem;
 }
@@ -2205,7 +2229,7 @@ button {
 .receipt-sheet-amount-box {
   margin-top: 1.5625rem;
   border: 1px solid #dce5f0;
-  background: #f2f6fb;
+  background: linear-gradient(180deg, #f7fafd 0%, #eef4fb 100%);
   padding: 1.375rem;
   text-align: center;
 }

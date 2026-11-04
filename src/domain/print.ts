@@ -14,6 +14,7 @@ export interface PrintableReceipt {
   category: string
   customerName: string
   propertyName: string
+  propertyType: string
   paymentMethod: string
   referenceNumber: string
   description: string
@@ -64,6 +65,7 @@ export function buildPrintableReceipt(
     category: category?.label ?? receipt.receiptType,
     customerName: receipt.customerName ?? '',
     propertyName: receipt.propertyName ?? '',
+    propertyType: receipt.propertyType ?? '',
     paymentMethod: paymentMethodLabel(receipt.paymentMethod),
     referenceNumber: receipt.referenceNumber ?? '',
     description: receipt.description ?? '',

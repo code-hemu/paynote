@@ -539,6 +539,8 @@ export function createReceiptPage(
       logo.src = printable.business.logo
       logo.alt = ''
       header.append(logo)
+    } else if (printable.propertyType) {
+      header.append(createPropertyIcon(doc, printable.propertyType))
     }
 
     const title = doc.createElement('h1')
@@ -547,8 +549,6 @@ export function createReceiptPage(
     subtitle.textContent = printable.category
     const tagline = doc.createElement('p')
     tagline.textContent = 'Official Payment Acknowledgement'
-    header.append(title, subtitle, tagline)
-    sheet.append(header)
 
     const meta = doc.createElement('div')
     meta.className = 'receipt-sheet-meta'
@@ -561,7 +561,9 @@ export function createReceiptPage(
     metaDateLabel.textContent = 'Date: '
     metaDate.append(metaDateLabel, formatDate(printable.receiptDate))
     meta.append(metaReceipt, metaDate)
-    sheet.append(meta)
+
+    header.append(title, subtitle, tagline, meta)
+    sheet.append(header)
 
     function appendSectionTitle(text: string) {
       const heading = doc.createElement('div')
@@ -894,6 +896,31 @@ function populateFilter(
 
 function formatQuantity(quantity: number): string {
   return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+}
+
+function createPropertyIcon(doc: Document, propertyType: string): SVGElement {
+  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('class', 'receipt-sheet-icon')
+  svg.setAttribute('viewBox', '0 0 24 24')
+  svg.setAttribute('fill', 'none')
+  svg.setAttribute('stroke', 'currentColor')
+  svg.setAttribute('stroke-width', '1.6')
+  svg.setAttribute('stroke-linecap', 'round')
+  svg.setAttribute('stroke-linejoin', 'round')
+  svg.setAttribute('aria-hidden', 'true')
+
+  const paths =
+    propertyType === 'godown'
+      ? ['M3 21V9l9-5 9 5v12', 'M7 21v-7h10v7', 'M7 17h10']
+      : ['M3 10.5 12 3l9 7.5V21H3z', 'M9 21v-6h6v6']
+
+  for (const d of paths) {
+    const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
+    path.setAttribute('d', d)
+    svg.append(path)
+  }
+
+  return svg
 }
 
 export function receiptStatusOptions(): Array<{ value: ReceiptStatus; label: string }> {
