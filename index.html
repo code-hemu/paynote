@@ -621,7 +621,7 @@
                     <span class="field-error" data-receipt-field-error="amount" hidden></span>
                   </label>
                   <label class="field">
-                    <span class="field-label">Reference number</span>
+                    <span class="field-label" data-receipt-reference-label>Reference number</span>
                     <input
                       class="input"
                       type="text"
@@ -1828,7 +1828,7 @@
                 <header class="card-header">
                   <div>
                     <h2 class="card-title">Delete database</h2>
-                    <p class="card-description">Permanently remove all customers, properties, receipts, and settings.</p>
+                    <p class="card-description">Permanently remove all customers, properties, receipts, and settings from both Individual and Business.</p>
                   </div>
                 </header>
                 <div class="card-body stack">
@@ -1907,6 +1907,7 @@
                           </label>
                           <span class="switch-indicator"></span>
                         </div>
+                        <p class="field-hint">Individual and Business keep separate records. Switching refreshes the current view in place.</p>
                         <span class="field-error" data-settings-field-error="profileType" hidden></span>
                       </div>
                       <div class="span-2 settings-section-block" data-settings-individual-field hidden>
@@ -2081,7 +2082,7 @@
 
                               <input
                                 type="url"
-                                maxlength="5000"
+                                maxlength="300000"
                                 data-settings-input="profileSignature"
                                 hidden
                               />
@@ -2253,6 +2254,33 @@
         </main>
       </div>
     </div>
+
+    <dialog
+      class="app-dialog"
+      data-settings-profile-dialog
+      aria-labelledby="settings-profile-dialog-title"
+    >
+      <div class="app-dialog-panel">
+        <h2 class="card-title" id="settings-profile-dialog-title">Switch workspace</h2>
+        <p class="card-description" data-settings-profile-dialog-message></p>
+        <div class="form-actions">
+          <button
+            class="button button-primary"
+            type="button"
+            data-settings-profile-dialog-confirm
+          >
+            Switch workspace
+          </button>
+          <button
+            class="button button-secondary"
+            type="button"
+            data-settings-profile-dialog-cancel
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </dialog>
 
     <script type="module" src="./src/main.ts"></script>
   </body>

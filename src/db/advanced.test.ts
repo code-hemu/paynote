@@ -109,11 +109,13 @@ describe('settings repository', () => {
     expect(getSetting(db, 'business.name')).toBe('Asha Traders')
     expect(readSettings(db)).toEqual({
       'business.name': 'Asha Traders',
+      'profile.type': 'business',
       'receipt.prefix': 'AT',
       'receipt.timezone': 'Asia/Kolkata',
     })
     expect(listSettings(db).map((setting) => setting.key)).toEqual([
       'business.name',
+      'profile.type',
       'receipt.prefix',
       'receipt.timezone',
     ])
@@ -122,7 +124,7 @@ describe('settings repository', () => {
     expect(getSetting(db, 'business.name')).toBe('Updated')
     expect(getSetting(db, 'missing')).toBeNull()
     expect(captureError(() => getSetting(db, ''))).toBeInstanceOf(Error)
-    expect(captureError(() => setSettings(db, { key: 'x'.repeat(5001) }))).toBeInstanceOf(
+    expect(captureError(() => setSettings(db, { key: 'x'.repeat(300001) }))).toBeInstanceOf(
       Error,
     )
   })

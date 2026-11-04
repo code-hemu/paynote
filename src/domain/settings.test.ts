@@ -128,7 +128,7 @@ describe('settings domain', () => {
     expect(stored).toEqual({
       [SETTING_KEYS.profileType]: 'individual',
       [SETTING_KEYS.fullName]: 'Asha Rao',
-      [SETTING_KEYS.businessName]: 'Asha Rao',
+      [SETTING_KEYS.businessName]: 'Asha Traders',
       [SETTING_KEYS.legalBusinessName]: 'Asha Traders Pvt Ltd',
       [SETTING_KEYS.businessType]: 'private-limited',
       [SETTING_KEYS.businessRegistrationNumber]: 'U12345',
@@ -154,7 +154,7 @@ describe('settings domain', () => {
     expect(settingsToFormValues(stored)).toEqual({
       ...values,
       fullName: 'Asha Rao',
-      businessName: 'Asha Rao',
+      businessName: 'Asha Traders',
       legalBusinessName: 'Asha Traders Pvt Ltd',
       businessType: 'private-limited',
       businessRegistrationNumber: 'U12345',
@@ -210,5 +210,19 @@ describe('settings domain', () => {
       logo: 'https://example.com/photo.png',
       signature: 'https://example.com/sign.png',
     })
+    expect(
+      businessProfileFromSettings({
+        [SETTING_KEYS.profileType]: 'individual',
+        [SETTING_KEYS.fullName]: 'Asha Rao',
+        [SETTING_KEYS.businessName]: 'Asha Traders',
+      }).name,
+    ).toBe('Asha Rao')
+    expect(
+      businessProfileFromSettings({
+        [SETTING_KEYS.profileType]: 'business',
+        [SETTING_KEYS.fullName]: 'Asha Rao',
+        [SETTING_KEYS.businessName]: 'Asha Traders',
+      }).name,
+    ).toBe('Asha Traders')
   })
 })

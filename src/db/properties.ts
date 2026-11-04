@@ -1,6 +1,7 @@
 import type { Database, SqlValue } from '@sqlite.org/sqlite-wasm'
 
 import { writeAuditLog } from './audit.ts'
+import { getDatabaseProfile } from './context.ts'
 import {
   DbConflictError,
   DbNotFoundError,
@@ -47,8 +48,8 @@ export function listProperties(
   const sortBy = normalizePropertySortField(options.sortBy)
   const sortDirection = normalizeSortDirection(options.sortDirection)
   const sortColumn = PROPERTY_SORT_COLUMNS[sortBy]
-  const conditions: string[] = []
-  const bind: SqlValue[] = []
+  const conditions: string[] = ['profile = ?']
+  const bind: SqlValue[] = [getDatabaseProfile()]
 
   if (search) {
     const pattern = `%${escapeLike(search)}%`
@@ -92,8 +93,8 @@ export function listProperties(
 export function getProperty(db: Database, id: string): Property {
   const propertyId = requireId(id, 'Property ID')
   const row = db.selectObject(
-    `SELECT ${PROPERTY_COLUMNS} FROM properties WHERE id = ?`,
-    [propertyId],
+    `SELECT ${PROPERTY_COLUMNS} FROM properties WHERE id = ? AND profile = ?`,
+    [propertyId, getDatabaseProfile()],
   )
 
   if (!row) {
@@ -113,6 +114,7 @@ export function createProperty(db: Database, input: PropertyInput): Property {
     db.exec({
       sql: `INSERT INTO properties (
         id,
+        profile,
         name,
         property_type,
         property_number,
@@ -121,9 +123,10 @@ export function createProperty(db: Database, input: PropertyInput): Property {
         notes,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       bind: [
         id,
+        getDatabaseProfile(),
         property.name,
         property.propertyType,
         property.propertyNumber,
@@ -164,7 +167,7 @@ export function updateProperty(
             description = ?,
             notes = ?,
             updated_at = ?
-        WHERE id = ?`,
+        WHERE id = ? AND profile = ?`,
       bind: [
         property.name,
         property.propertyType,
@@ -174,6 +177,7 @@ export function updateProperty(
         property.notes,
         nowIso(),
         propertyId,
+        getDatabaseProfile(),
       ],
     })
 
@@ -191,17 +195,22 @@ export function deleteProperty(db: Database, id: string): void {
 
   db.transaction('IMMEDIATE', () => {
     const property = getProperty(db, propertyId)
+    const profile = getDatabaseProfile()
     const receiptCount = toNumber(
-      db.selectValue('SELECT COUNT(*) FROM receipts WHERE property_id = ?', [
-        propertyId,
-      ]),
+      db.selectValue(
+        'SELECT COUNT(*) FROM receipts WHERE property_id = ? AND profile = ?',
+        [propertyId, profile],
+      ),
     )
 
     if (receiptCount > 0) {
       throw new DbConflictError('This property has receipts and cannot be deleted.')
     }
 
-    db.exec({ sql: 'DELETE FROM properties WHERE id = ?', bind: [propertyId] })
+    db.exec({
+      sql: 'DELETE FROM properties WHERE id = ? AND profile = ?',
+      bind: [propertyId, profile],
+    })
     writeAuditLog(db, 'delete', 'property', propertyId, {
       name: property.name,
     })

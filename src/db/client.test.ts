@@ -43,6 +43,13 @@ async function waitForMessages(worker: FakeWorker, count: number) {
   }
 }
 
+async function initializeClient(client: SqliteClient, worker: FakeWorker) {
+  const init = client.init()
+  worker.respond(worker.messages[0]?.id ?? 0, DATABASE_INFO)
+  await init
+  worker.messages.length = 0
+}
+
 describe('SQLite client', () => {
   it('initializes once and caches the database info', async () => {
     const worker = new FakeWorker()
@@ -51,11 +58,56 @@ describe('SQLite client', () => {
     const request = worker.messages[0]
 
     expect(request?.method).toBe('init')
+    expect(request?.params).toEqual({ profile: 'business' })
     worker.respond(request?.id ?? 0, DATABASE_INFO)
 
     expect(await init).toEqual(DATABASE_INFO)
     expect(await client.init()).toEqual(DATABASE_INFO)
     expect(worker.messages).toHaveLength(1)
+  })
+
+  it('opens the database for the requested profile', async () => {
+    const worker = new FakeWorker()
+    const client = new SqliteClient({
+      createWorker: () => worker,
+      profile: 'individual',
+    })
+    const init = client.init()
+
+    expect(worker.messages[0]?.params).toEqual({ profile: 'individual' })
+    worker.respond(worker.messages[0]?.id ?? 0, DATABASE_INFO)
+
+    expect((await init).databasePath).toBe('/paynote.sqlite3')
+    expect(client.getProfile()).toBe('individual')
+  })
+
+  it('switches profiles on the existing worker without closing it', async () => {
+    const worker = new FakeWorker()
+    const client = new SqliteClient({ createWorker: () => worker })
+    await initializeClient(client, worker)
+
+    const switching = client.switchProfile('individual')
+    await waitForMessages(worker, 1)
+
+    const switchRequest = worker.messages[0]
+    expect(switchRequest?.method).toBe('init')
+    expect(switchRequest?.params).toEqual({ profile: 'individual' })
+    worker.respond(switchRequest?.id ?? 0, DATABASE_INFO)
+
+    expect(await switching).toEqual(DATABASE_INFO)
+    expect(client.getProfile()).toBe('individual')
+    expect(worker.terminated).toBe(false)
+
+    const list = client.listCustomers()
+    await waitForMessages(worker, 2)
+    expect(worker.messages[1]?.method).toBe('customers.list')
+    worker.respond(worker.messages[1]?.id ?? 0, {
+      items: [],
+      total: 0,
+      limit: 0,
+      offset: 0,
+    })
+    await list
   })
 
   it('combines database health with browser storage estimates', async () => {
@@ -101,6 +153,7 @@ describe('SQLite client', () => {
   it('sends typed CRUD requests', async () => {
     const worker = new FakeWorker()
     const client = new SqliteClient({ createWorker: () => worker })
+    await initializeClient(client, worker)
     const customer = {
       id: 'customer-1',
       fullName: 'Asha Rao',
@@ -113,6 +166,7 @@ describe('SQLite client', () => {
     }
 
     const create = client.createCustomer({ fullName: 'Asha Rao' })
+    await waitForMessages(worker, 1)
     const createRequest = worker.messages[0]
     expect(createRequest?.method).toBe('customers.create')
     expect(createRequest?.params).toEqual({ fullName: 'Asha Rao' })
@@ -120,6 +174,7 @@ describe('SQLite client', () => {
     expect(await create).toEqual(customer)
 
     const list = client.listReceipts({ limit: 10 })
+    await waitForMessages(worker, 2)
     const listRequest = worker.messages[1]
     expect(listRequest?.method).toBe('receipts.list')
     expect(listRequest?.params).toEqual({ limit: 10 })
@@ -132,6 +187,7 @@ describe('SQLite client', () => {
     expect(await list).toEqual({ items: [], total: 0, limit: 10, offset: 0 })
 
     const remove = client.deleteCustomer('customer-1')
+    await waitForMessages(worker, 3)
     const removeRequest = worker.messages[2]
     expect(removeRequest?.method).toBe('customers.delete')
     expect(removeRequest?.params).toEqual({ id: 'customer-1' })

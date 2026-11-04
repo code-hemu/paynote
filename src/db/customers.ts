@@ -1,6 +1,7 @@
 import type { Database, SqlValue } from '@sqlite.org/sqlite-wasm'
 
 import { writeAuditLog } from './audit.ts'
+import { getDatabaseProfile } from './context.ts'
 import {
   DbConflictError,
   DbNotFoundError,
@@ -43,8 +44,8 @@ export function listCustomers(
   const sortBy = normalizeCustomerSortField(options.sortBy)
   const sortDirection = normalizeSortDirection(options.sortDirection)
   const sortColumn = CUSTOMER_SORT_COLUMNS[sortBy]
-  const conditions: string[] = []
-  const bind: SqlValue[] = []
+  const conditions: string[] = ['profile = ?']
+  const bind: SqlValue[] = [getDatabaseProfile()]
 
   if (search) {
     const pattern = `%${escapeLike(search)}%`
@@ -83,8 +84,8 @@ export function listCustomers(
 export function getCustomer(db: Database, id: string): Customer {
   const customerId = requireId(id, 'Customer ID')
   const row = db.selectObject(
-    `SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE id = ?`,
-    [customerId],
+    `SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE id = ? AND profile = ?`,
+    [customerId, getDatabaseProfile()],
   )
 
   if (!row) {
@@ -100,14 +101,15 @@ export function isCustomerNameTaken(
   excludeId?: string | null,
 ): boolean {
   const fullName = requireText(name, 'Customer name')
+  const profile = getDatabaseProfile()
   const row = excludeId
     ? db.selectValue(
-        'SELECT 1 FROM customers WHERE full_name = ? COLLATE NOCASE AND id <> ?',
-        [fullName, excludeId],
+        'SELECT 1 FROM customers WHERE full_name = ? COLLATE NOCASE AND id <> ? AND profile = ?',
+        [fullName, excludeId, profile],
       )
     : db.selectValue(
-        'SELECT 1 FROM customers WHERE full_name = ? COLLATE NOCASE',
-        [fullName],
+        'SELECT 1 FROM customers WHERE full_name = ? COLLATE NOCASE AND profile = ?',
+        [fullName, profile],
       )
 
   return row !== undefined && row !== null
@@ -129,6 +131,7 @@ export function createCustomer(db: Database, input: CustomerInput): Customer {
     db.exec({
       sql: `INSERT INTO customers (
         id,
+        profile,
         full_name,
         phone,
         email,
@@ -136,9 +139,10 @@ export function createCustomer(db: Database, input: CustomerInput): Customer {
         notes,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       bind: [
         id,
+        getDatabaseProfile(),
         customer.fullName,
         customer.phone,
         customer.email,
@@ -182,7 +186,7 @@ export function updateCustomer(
             address = ?,
             notes = ?,
             updated_at = ?
-        WHERE id = ?`,
+        WHERE id = ? AND profile = ?`,
       bind: [
         customer.fullName,
         customer.phone,
@@ -191,6 +195,7 @@ export function updateCustomer(
         customer.notes,
         nowIso(),
         customerId,
+        getDatabaseProfile(),
       ],
     })
 
@@ -207,17 +212,22 @@ export function deleteCustomer(db: Database, id: string): void {
 
   db.transaction('IMMEDIATE', () => {
     const customer = getCustomer(db, customerId)
+    const profile = getDatabaseProfile()
     const receiptCount = toNumber(
-      db.selectValue('SELECT COUNT(*) FROM receipts WHERE customer_id = ?', [
-        customerId,
-      ]),
+      db.selectValue(
+        'SELECT COUNT(*) FROM receipts WHERE customer_id = ? AND profile = ?',
+        [customerId, profile],
+      ),
     )
 
     if (receiptCount > 0) {
       throw new DbConflictError('This customer has receipts and cannot be deleted.')
     }
 
-    db.exec({ sql: 'DELETE FROM customers WHERE id = ?', bind: [customerId] })
+    db.exec({
+      sql: 'DELETE FROM customers WHERE id = ? AND profile = ?',
+      bind: [customerId, profile],
+    })
     writeAuditLog(db, 'delete', 'customer', customerId, {
       fullName: customer.fullName,
     })

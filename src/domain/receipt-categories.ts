@@ -288,3 +288,15 @@ export function isPaymentMethod(value: string): value is PaymentMethod {
 export function paymentMethodLabel(value: string): string {
   return isPaymentMethod(value) ? PAYMENT_METHOD_LABELS[value] : value
 }
+
+const ONLINE_PAYMENT_METHODS: readonly PaymentMethod[] = [
+  'upi',
+  'bank-transfer',
+  'card',
+]
+
+export function paymentReferenceLabel(value: string): string {
+  return isPaymentMethod(value) && ONLINE_PAYMENT_METHODS.includes(value)
+    ? 'Transaction number'
+    : 'Reference number'
+}

@@ -11,6 +11,7 @@ import {
 } from '../domain/receipt-status.ts'
 
 import { writeAuditLog } from './audit.ts'
+import { getDatabaseProfile } from './context.ts'
 import { DbNotFoundError, DbValidationError } from './errors.ts'
 import {
   rowNullableText,
@@ -66,8 +67,8 @@ const RECEIPT_COLUMNS = `r.id,
   r.updated_at`
 
 const RECEIPT_FROM = `FROM receipts r
-  LEFT JOIN customers c ON c.id = r.customer_id
-  LEFT JOIN properties p ON p.id = r.property_id`
+  LEFT JOIN customers c ON c.id = r.customer_id AND c.profile = r.profile
+  LEFT JOIN properties p ON p.id = r.property_id AND p.profile = r.profile`
 
 export function listReceipts(
   db: Database,
@@ -89,8 +90,8 @@ export function listReceipts(
     options.maxAmountPaise,
     'Maximum amount',
   )
-  const conditions: string[] = []
-  const bind: SqlValue[] = []
+  const conditions: string[] = ['r.profile = ?']
+  const bind: SqlValue[] = [getDatabaseProfile()]
 
   if (search) {
     const pattern = `%${escapeLike(search)}%`
@@ -172,8 +173,8 @@ export function listReceipts(
 export function getReceipt(db: Database, id: string): Receipt {
   const receiptId = requireId(id, 'Receipt ID')
   const row = db.selectObject(
-    `SELECT ${RECEIPT_COLUMNS} ${RECEIPT_FROM} WHERE r.id = ?`,
-    [receiptId],
+    `SELECT ${RECEIPT_COLUMNS} ${RECEIPT_FROM} WHERE r.id = ? AND r.profile = ?`,
+    [receiptId, getDatabaseProfile()],
   )
 
   if (!row) {
@@ -216,6 +217,7 @@ export function createReceipt(db: Database, input: ReceiptInput): Receipt {
     db.exec({
       sql: `INSERT INTO receipts (
         id,
+        profile,
         receipt_number,
         receipt_type,
         customer_id,
@@ -230,9 +232,10 @@ export function createReceipt(db: Database, input: ReceiptInput): Receipt {
         notes,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       bind: [
         id,
+        getDatabaseProfile(),
         receiptNumber,
         receipt.receiptType,
         receipt.customerId,
@@ -291,7 +294,7 @@ export function updateReceipt(
             description = ?,
             notes = ?,
             updated_at = ?
-        WHERE id = ?`,
+        WHERE id = ? AND profile = ?`,
       bind: [
         receipt.receiptType,
         receipt.customerId,
@@ -306,6 +309,7 @@ export function updateReceipt(
         receipt.notes,
         nowIso(),
         receiptId,
+        getDatabaseProfile(),
       ],
     })
 
@@ -335,7 +339,10 @@ export function deleteReceipt(db: Database, id: string): void {
   db.transaction('IMMEDIATE', () => {
     const receipt = getReceipt(db, receiptId)
 
-    db.exec({ sql: 'DELETE FROM receipts WHERE id = ?', bind: [receiptId] })
+    db.exec({
+      sql: 'DELETE FROM receipts WHERE id = ? AND profile = ?',
+      bind: [receiptId, getDatabaseProfile()],
+    })
     writeAuditLog(db, 'delete', 'receipt', receiptId, {
       receiptNumber: receipt.receiptNumber,
       amountPaise: receipt.amountPaise,
@@ -390,13 +397,16 @@ function normalizeReceipt(
 
 function nextReceiptNumber(db: Database, receiptDate: string, now: string): string {
   const year = Number(receiptDate.slice(0, 4))
+  const profile = getDatabaseProfile()
   const setting = db.selectValue(
-    `SELECT value FROM settings WHERE key = 'receipt.prefix'`,
+    `SELECT value FROM settings WHERE profile = ? AND key = 'receipt.prefix'`,
+    [profile],
   )
   const defaultPrefix =
     typeof setting === 'string' && setting.trim() !== '' ? setting.trim() : 'PN'
   const formatSetting = db.selectValue(
-    `SELECT value FROM settings WHERE key = 'receipt.numberFormat'`,
+    `SELECT value FROM settings WHERE profile = ? AND key = 'receipt.numberFormat'`,
+    [profile],
   )
   const format =
     typeof formatSetting === 'string' && formatSetting.trim() !== ''
@@ -404,15 +414,15 @@ function nextReceiptNumber(db: Database, receiptDate: string, now: string): stri
       : DEFAULT_RECEIPT_NUMBER_FORMAT
 
   db.exec({
-    sql: `INSERT INTO receipt_sequences (year, prefix, next_number, updated_at)
-      VALUES (?, ?, 1, ?)
-      ON CONFLICT(year) DO NOTHING`,
-    bind: [year, defaultPrefix, now],
+    sql: `INSERT INTO receipt_sequences (profile, year, prefix, next_number, updated_at)
+      VALUES (?, ?, ?, 1, ?)
+      ON CONFLICT(profile, year) DO NOTHING`,
+    bind: [profile, year, defaultPrefix, now],
   })
 
   const sequence = db.selectObject(
-    `SELECT prefix, next_number FROM receipt_sequences WHERE year = ?`,
-    [year],
+    `SELECT prefix, next_number FROM receipt_sequences WHERE profile = ? AND year = ?`,
+    [profile, year],
   )
   const prefix = rowText(sequence ?? {}, 'prefix') || defaultPrefix
   const nextNumber = Math.max(1, rowNumber(sequence ?? {}, 'next_number'))
@@ -425,8 +435,8 @@ function nextReceiptNumber(db: Database, receiptDate: string, now: string): stri
   db.exec({
     sql: `UPDATE receipt_sequences
       SET next_number = ?, updated_at = ?
-      WHERE year = ?`,
-    bind: [nextNumber + 1, now, year],
+      WHERE profile = ? AND year = ?`,
+    bind: [nextNumber + 1, now, profile, year],
   })
 
   return receiptNumber
@@ -442,7 +452,10 @@ function assertReference(
     return
   }
 
-  const exists = db.selectValue(`SELECT 1 FROM ${table} WHERE id = ?`, [id])
+  const exists = db.selectValue(
+    `SELECT 1 FROM ${table} WHERE id = ? AND profile = ?`,
+    [id, getDatabaseProfile()],
+  )
 
   if (!exists) {
     throw new DbValidationError(`${label} does not exist.`)

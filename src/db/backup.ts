@@ -11,12 +11,15 @@ import { createBackupManifest } from '../domain/backup.ts'
 import { computeLineItem } from '../domain/money.ts'
 import { toCsv } from '../utils/csv.ts'
 
+import { getDatabaseProfile } from './context.ts'
 import { listCustomers } from './customers.ts'
+import { DbConflictError, DbValidationError } from './errors.ts'
 import { LATEST_SCHEMA_VERSION } from './migrations.ts'
+import { DB_PROFILES, type DbProfile } from './profile.ts'
 import { listProperties } from './properties.ts'
 import { getReceipt, listReceipts } from './receipts.ts'
 import { rowNumber, rowText } from './rows.ts'
-import { listSettings } from './settings.ts'
+import { listSettings, setSetting } from './settings.ts'
 import type {
   Customer,
   Property,
@@ -24,7 +27,7 @@ import type {
   ReceiptItem,
   ReceiptSummary,
 } from './types.ts'
-import { normalizeStatus } from './validation.ts'
+import { normalizeStatus, nowIso } from './validation.ts'
 
 const PAGE_SIZE = 200
 
@@ -74,45 +77,68 @@ export function restoreBackup(
     )
   }
 
+  const profile = getDatabaseProfile()
+
   return db.transaction('IMMEDIATE', () => {
+    assertNoCrossProfileRecords(db, backup, profile)
+
     if (mode === 'replace') {
-      db.exec('DELETE FROM receipts')
-      db.exec('DELETE FROM customers')
-      db.exec('DELETE FROM properties')
+      db.exec({
+        sql: 'DELETE FROM receipts WHERE profile = ?',
+        bind: [profile],
+      })
+      db.exec({
+        sql: 'DELETE FROM customers WHERE profile = ?',
+        bind: [profile],
+      })
+      db.exec({
+        sql: 'DELETE FROM properties WHERE profile = ?',
+        bind: [profile],
+      })
     }
 
     for (const customer of backup.customers) {
-      insertCustomer(db, customer, mode)
+      insertCustomer(db, customer, mode, profile)
     }
 
     for (const property of backup.properties) {
-      insertProperty(db, property, mode)
+      insertProperty(db, property, mode, profile)
     }
 
     for (const receipt of backup.receipts) {
-      insertReceipt(db, receipt, mode)
+      insertReceipt(db, receipt, mode, profile)
     }
 
     for (const setting of backup.settings) {
       db.exec(
-        `INSERT INTO settings (key, value, updated_at)
-         VALUES (?, ?, ?)
-         ON CONFLICT(key) DO UPDATE SET
+        `INSERT INTO settings (profile, key, value, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(profile, key) DO UPDATE SET
            value = excluded.value,
            updated_at = excluded.updated_at`,
-        { bind: [setting.key, setting.value, setting.updatedAt] },
+        { bind: [profile, setting.key, setting.value, setting.updatedAt] },
       )
     }
 
+    setSetting(db, 'profile.type', profile)
+
     for (const sequence of backup.sequences) {
       db.exec(
-        `INSERT INTO receipt_sequences (year, prefix, next_number, updated_at)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(year) DO UPDATE SET
+        `INSERT INTO receipt_sequences (profile, year, prefix, next_number, updated_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(profile, year) DO UPDATE SET
            prefix = excluded.prefix,
            next_number = MAX(receipt_sequences.next_number, excluded.next_number),
            updated_at = excluded.updated_at`,
-        { bind: [sequence.year, sequence.prefix, sequence.nextNumber, sequence.updatedAt] },
+        {
+          bind: [
+            profile,
+            sequence.year,
+            sequence.prefix,
+            sequence.nextNumber,
+            sequence.updatedAt,
+          ],
+        },
       )
     }
 
@@ -136,8 +162,34 @@ export function deleteAllData(db: Database): null {
     db.exec('DELETE FROM customers')
     db.exec('DELETE FROM properties')
     db.exec('DELETE FROM settings')
+    seedDefaultSettings(db)
     return null
   })
+}
+
+function seedDefaultSettings(db: Database): void {
+  const updatedAt = nowIso()
+
+  for (const profile of DB_PROFILES) {
+    db.exec({
+      sql: `INSERT INTO settings (profile, key, value, updated_at) VALUES
+        (?, 'profile.type', ?, ?),
+        (?, 'business.name', '', ?),
+        (?, 'receipt.prefix', 'PN', ?),
+        (?, 'receipt.timezone', 'Asia/Kolkata', ?)`,
+      bind: [
+        profile,
+        profile,
+        updatedAt,
+        profile,
+        updatedAt,
+        profile,
+        updatedAt,
+        profile,
+        updatedAt,
+      ],
+    })
+  }
 }
 
 function buildReceiptCsv(receipts: ReceiptSummary[]): string {
@@ -192,7 +244,8 @@ function collectAll<T>(load: (offset: number) => T[]): T[] {
 function listSequences(db: Database): BackupSequence[] {
   return db
     .selectObjects(
-      'SELECT year, prefix, next_number, updated_at FROM receipt_sequences ORDER BY year ASC',
+      'SELECT year, prefix, next_number, updated_at FROM receipt_sequences WHERE profile = ? ORDER BY year ASC',
+      [getDatabaseProfile()],
     )
     .map((row) => ({
       year: rowNumber(row, 'year'),
@@ -202,7 +255,60 @@ function listSequences(db: Database): BackupSequence[] {
     }))
 }
 
-function insertCustomer(db: Database, customer: Customer, mode: RestoreMode): void {
+function assertNoCrossProfileRecords(
+  db: Database,
+  backup: BackupFile,
+  profile: DbProfile,
+): void {
+  const groups: ReadonlyArray<readonly [string, readonly string[]]> = [
+    ['customers', backup.customers.map((customer) => customer.id)],
+    ['properties', backup.properties.map((property) => property.id)],
+    ['receipts', backup.receipts.map((receipt) => receipt.id)],
+  ]
+
+  for (const [table, ids] of groups) {
+    for (const id of ids) {
+      const owner = db.selectValue(`SELECT profile FROM ${table} WHERE id = ?`, [
+        id,
+      ])
+
+      if (typeof owner === 'string' && owner !== profile) {
+        throw new DbConflictError(
+          'This backup contains records from the other workspace. Switch back to that workspace before restoring.',
+        )
+      }
+    }
+  }
+}
+
+function assertRestoreReference(
+  db: Database,
+  table: 'customers' | 'properties',
+  id: string | null,
+  profile: DbProfile,
+): void {
+  if (!id) {
+    return
+  }
+
+  const exists = db.selectValue(
+    `SELECT 1 FROM ${table} WHERE id = ? AND profile = ?`,
+    [id, profile],
+  )
+
+  if (!exists) {
+    throw new DbValidationError(
+      'This backup contains a receipt that references a record outside this workspace.',
+    )
+  }
+}
+
+function insertCustomer(
+  db: Database,
+  customer: Customer,
+  mode: RestoreMode,
+  profile: DbProfile,
+): void {
   const conflict = mode === 'merge'
     ? `ON CONFLICT(id) DO UPDATE SET
         full_name = excluded.full_name,
@@ -210,16 +316,18 @@ function insertCustomer(db: Database, customer: Customer, mode: RestoreMode): vo
         email = excluded.email,
         address = excluded.address,
         notes = excluded.notes,
-        updated_at = excluded.updated_at`
+        updated_at = excluded.updated_at
+        WHERE profile = excluded.profile`
     : ''
 
   db.exec(
     `INSERT INTO customers (
-      id, full_name, phone, email, address, notes, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ${conflict}`,
+      id, profile, full_name, phone, email, address, notes, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ${conflict}`,
     {
       bind: [
         customer.id,
+        profile,
         customer.fullName,
         customer.phone ?? '',
         customer.email ?? null,
@@ -232,7 +340,12 @@ function insertCustomer(db: Database, customer: Customer, mode: RestoreMode): vo
   )
 }
 
-function insertProperty(db: Database, property: Property, mode: RestoreMode): void {
+function insertProperty(
+  db: Database,
+  property: Property,
+  mode: RestoreMode,
+  profile: DbProfile,
+): void {
   const conflict = mode === 'merge'
     ? `ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
@@ -241,16 +354,18 @@ function insertProperty(db: Database, property: Property, mode: RestoreMode): vo
         address = excluded.address,
         description = excluded.description,
         notes = excluded.notes,
-        updated_at = excluded.updated_at`
+        updated_at = excluded.updated_at
+        WHERE profile = excluded.profile`
     : ''
 
   db.exec(
     `INSERT INTO properties (
-      id, name, property_type, property_number, address, description, notes, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ${conflict}`,
+      id, profile, name, property_type, property_number, address, description, notes, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ${conflict}`,
     {
       bind: [
         property.id,
+        profile,
         property.name,
         property.propertyType,
         property.propertyNumber ?? null,
@@ -264,7 +379,12 @@ function insertProperty(db: Database, property: Property, mode: RestoreMode): vo
   )
 }
 
-function insertReceipt(db: Database, receipt: Receipt, mode: RestoreMode): void {
+function insertReceipt(
+  db: Database,
+  receipt: Receipt,
+  mode: RestoreMode,
+  profile: DbProfile,
+): void {
   const conflict = mode === 'merge'
     ? `ON CONFLICT(id) DO UPDATE SET
         receipt_number = excluded.receipt_number,
@@ -279,18 +399,23 @@ function insertReceipt(db: Database, receipt: Receipt, mode: RestoreMode): void 
         reference_number = excluded.reference_number,
         description = excluded.description,
         notes = excluded.notes,
-        updated_at = excluded.updated_at`
+        updated_at = excluded.updated_at
+        WHERE profile = excluded.profile`
     : ''
+
+  assertRestoreReference(db, 'customers', receipt.customerId, profile)
+  assertRestoreReference(db, 'properties', receipt.propertyId, profile)
 
   db.exec(
     `INSERT INTO receipts (
-      id, receipt_number, receipt_type, customer_id, property_id, receipt_date,
+      id, profile, receipt_number, receipt_type, customer_id, property_id, receipt_date,
       payment_period, amount_paise, payment_method, status, reference_number,
       description, notes, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ${conflict}`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ${conflict}`,
     {
       bind: [
         receipt.id,
+        profile,
         receipt.receiptNumber,
         receipt.receiptType,
         receipt.customerId ?? null,
@@ -308,6 +433,17 @@ function insertReceipt(db: Database, receipt: Receipt, mode: RestoreMode): void 
       ],
     },
   )
+
+  const storedProfile = db.selectValue(
+    'SELECT profile FROM receipts WHERE id = ?',
+    [receipt.id],
+  )
+
+  if (storedProfile !== profile) {
+    throw new DbConflictError(
+      'This backup contains records from the other workspace. Switch back to that workspace before restoring.',
+    )
+  }
 
   db.exec('DELETE FROM receipt_details WHERE receipt_id = ?', {
     bind: [receipt.id],

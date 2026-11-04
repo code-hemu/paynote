@@ -141,6 +141,91 @@ const MIGRATIONS: readonly Migration[] = [
       'CREATE INDEX idx_receipt_items_receipt_id ON receipt_items(receipt_id)',
     ],
   },
+  {
+    version: 3,
+    name: 'profile_scoped_data',
+    statements: [
+      `ALTER TABLE customers ADD COLUMN profile TEXT NOT NULL DEFAULT 'business'`,
+      `ALTER TABLE properties ADD COLUMN profile TEXT NOT NULL DEFAULT 'business'`,
+      `ALTER TABLE audit_logs ADD COLUMN profile TEXT NOT NULL DEFAULT 'business'`,
+      'CREATE INDEX idx_customers_profile ON customers(profile)',
+      'CREATE INDEX idx_properties_profile ON properties(profile)',
+      `CREATE TABLE settings_new (
+        profile TEXT NOT NULL DEFAULT 'business',
+        key TEXT NOT NULL,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (profile, key)
+      )`,
+      `INSERT INTO settings_new (profile, key, value, updated_at)
+        SELECT 'business', key, value, updated_at FROM settings`,
+      'DROP TABLE settings',
+      'ALTER TABLE settings_new RENAME TO settings',
+      `INSERT INTO settings (profile, key, value, updated_at) VALUES
+        ('business', 'profile.type', 'business', ${NOW}),
+        ('individual', 'profile.type', 'individual', ${NOW}),
+        ('individual', 'business.name', '', ${NOW}),
+        ('individual', 'receipt.prefix', 'PN', ${NOW}),
+        ('individual', 'receipt.timezone', 'Asia/Kolkata', ${NOW})
+        ON CONFLICT(profile, key) DO NOTHING`,
+      `UPDATE settings SET value = 'business', updated_at = ${NOW}
+        WHERE profile = 'business' AND key = 'profile.type'`,
+      `UPDATE settings SET value = 'individual', updated_at = ${NOW}
+        WHERE profile = 'individual' AND key = 'profile.type'`,
+      `CREATE TABLE receipt_sequences_new (
+        profile TEXT NOT NULL DEFAULT 'business',
+        year INTEGER NOT NULL,
+        prefix TEXT NOT NULL DEFAULT 'PN',
+        next_number INTEGER NOT NULL DEFAULT 1 CHECK (next_number > 0),
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (profile, year)
+      )`,
+      `INSERT INTO receipt_sequences_new (profile, year, prefix, next_number, updated_at)
+        SELECT 'business', year, prefix, next_number, updated_at FROM receipt_sequences`,
+      'DROP TABLE receipt_sequences',
+      'ALTER TABLE receipt_sequences_new RENAME TO receipt_sequences',
+      `CREATE TABLE receipts_new (
+        id TEXT PRIMARY KEY,
+        profile TEXT NOT NULL DEFAULT 'business',
+        receipt_number TEXT NOT NULL,
+        receipt_type TEXT NOT NULL,
+        customer_id TEXT,
+        property_id TEXT,
+        receipt_date TEXT NOT NULL,
+        payment_period TEXT,
+        amount_paise INTEGER NOT NULL CHECK (amount_paise >= 0),
+        payment_method TEXT NOT NULL,
+        reference_number TEXT,
+        description TEXT,
+        notes TEXT,
+        status TEXT NOT NULL DEFAULT 'issued'
+          CHECK (status IN ('draft', 'issued', 'paid', 'cancelled')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE (profile, receipt_number),
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE RESTRICT
+      )`,
+      `INSERT INTO receipts_new (
+        id, profile, receipt_number, receipt_type, customer_id, property_id,
+        receipt_date, payment_period, amount_paise, payment_method, status,
+        reference_number, description, notes, created_at, updated_at
+      )
+      SELECT
+        id, 'business', receipt_number, receipt_type, customer_id, property_id,
+        receipt_date, payment_period, amount_paise, payment_method, status,
+        reference_number, description, notes, created_at, updated_at
+      FROM receipts`,
+      'DROP TABLE receipts',
+      'ALTER TABLE receipts_new RENAME TO receipts',
+      'CREATE INDEX idx_receipts_profile ON receipts(profile)',
+      'CREATE INDEX idx_receipts_receipt_date ON receipts(receipt_date)',
+      'CREATE INDEX idx_receipts_receipt_type ON receipts(receipt_type)',
+      'CREATE INDEX idx_receipts_customer_id ON receipts(customer_id)',
+      'CREATE INDEX idx_receipts_property_id ON receipts(property_id)',
+      'CREATE INDEX idx_receipts_status ON receipts(status)',
+    ],
+  },
 ]
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]?.version ?? 0
@@ -149,9 +234,10 @@ export function readSchemaVersion(db: Database): number {
   return toNumber(db.selectValue('PRAGMA user_version'))
 }
 
-export function migrateDatabase(db: Database): number {
-  db.exec('PRAGMA foreign_keys = ON')
-
+export function migrateDatabase(
+  db: Database,
+  targetVersion: number = LATEST_SCHEMA_VERSION,
+): number {
   let currentVersion = readSchemaVersion(db)
 
   if (currentVersion > LATEST_SCHEMA_VERSION) {
@@ -166,38 +252,48 @@ export function migrateDatabase(db: Database): number {
     applied_at TEXT NOT NULL
   )`)
 
-  for (const migration of MIGRATIONS) {
-    if (migration.version <= currentVersion) {
-      continue
-    }
+  db.exec('PRAGMA foreign_keys = OFF')
 
-    if (migration.version !== currentVersion + 1) {
-      throw new DbSchemaError(
-        `Database version ${currentVersion} cannot be upgraded because migration ${migration.version} is out of sequence. Restore a backup or clear site data.`,
-      )
-    }
+  try {
+    for (const migration of MIGRATIONS) {
+      if (migration.version <= currentVersion) {
+        continue
+      }
 
-    try {
-      db.transaction('IMMEDIATE', () => {
-        for (const statement of migration.statements) {
-          db.exec(statement)
-        }
+      if (migration.version > targetVersion) {
+        break
+      }
 
-        db.exec(
-          'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
-          {
-            bind: [migration.version, migration.name, new Date().toISOString()],
-          },
+      if (migration.version !== currentVersion + 1) {
+        throw new DbSchemaError(
+          `Database version ${currentVersion} cannot be upgraded because migration ${migration.version} is out of sequence. Restore a backup or clear site data.`,
         )
-        db.exec(`PRAGMA user_version = ${migration.version}`)
-      })
-    } catch (error) {
-      throw new DbSchemaError(
-        `The database could not be upgraded to version ${migration.version}: ${errorMessage(error)}`,
-      )
-    }
+      }
 
-    currentVersion = migration.version
+      try {
+        db.transaction('IMMEDIATE', () => {
+          for (const statement of migration.statements) {
+            db.exec(statement)
+          }
+
+          db.exec(
+            'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
+            {
+              bind: [migration.version, migration.name, new Date().toISOString()],
+            },
+          )
+          db.exec(`PRAGMA user_version = ${migration.version}`)
+        })
+      } catch (error) {
+        throw new DbSchemaError(
+          `The database could not be upgraded to version ${migration.version}: ${errorMessage(error)}`,
+        )
+      }
+
+      currentVersion = migration.version
+    }
+  } finally {
+    db.exec('PRAGMA foreign_keys = ON')
   }
 
   assertDatabaseHealth(db)

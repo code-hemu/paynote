@@ -1,10 +1,15 @@
-import { DATABASE_FILE, STORAGE_TYPE } from '../db/constants.ts'
+import { databaseConfigFor, STORAGE_TYPE } from '../db/constants.ts'
 import { DbError } from '../db/errors.ts'
 import { LATEST_SCHEMA_VERSION } from '../db/migrations.ts'
+import { getActiveProfile } from '../db/profile.ts'
 import type { AppInfo, StorageHealth } from '../types/system.ts'
 import { getDatabaseClient } from './database.ts'
 
-export const STORAGE_LOCATION = DATABASE_FILE
+export function getStorageLocation(): string {
+  return databaseConfigFor(getActiveProfile()).file
+}
+
+export const STORAGE_LOCATION = getStorageLocation()
 
 export function getAppInfo(): AppInfo {
   return {
@@ -27,6 +32,7 @@ export async function getStorageHealth(): Promise<StorageHealth> {
       quotaBytes: health.quotaBytes,
       recordCount: health.recordCount,
       persistent: health.persistent,
+      databasePath: health.databasePath,
       detail: health.persistent
         ? 'Records are saved in the browser private file system on this device.'
         : 'Records are saved, but this browser may evict them. Enable persistent storage to reduce that risk.',
@@ -39,6 +45,7 @@ export async function getStorageHealth(): Promise<StorageHealth> {
       quotaBytes: null,
       recordCount: 0,
       persistent: false,
+      databasePath: getStorageLocation(),
       detail:
         error instanceof DbError || error instanceof Error
           ? error.message

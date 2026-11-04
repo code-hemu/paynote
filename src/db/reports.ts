@@ -8,6 +8,7 @@ import {
   type ReportSummary,
 } from '../domain/reports.ts'
 
+import { getDatabaseProfile } from './context.ts'
 import { rowNumber, rowText, toNumber } from './rows.ts'
 import {
   escapeLike,
@@ -22,7 +23,8 @@ export interface ReportOptions extends Partial<ReportFilters> {
   search?: string | null
 }
 
-const FROM = 'FROM receipts r LEFT JOIN customers c ON c.id = r.customer_id LEFT JOIN properties p ON p.id = r.property_id'
+const FROM =
+  'FROM receipts r LEFT JOIN customers c ON c.id = r.customer_id AND c.profile = r.profile LEFT JOIN properties p ON p.id = r.property_id AND p.profile = r.profile'
 
 export function getReportSummary(
   db: Database,
@@ -143,8 +145,8 @@ function buildWhere(
   filters: ReportFilters,
   search: string | null,
 ): { where: string; bind: SqlValue[] } {
-  const conditions: string[] = []
-  const bind: SqlValue[] = []
+  const conditions: string[] = ['r.profile = ?']
+  const bind: SqlValue[] = [getDatabaseProfile()]
 
   if (search) {
     const pattern = `%${escapeLike(search)}%`

@@ -1,7 +1,11 @@
 import type { Receipt } from '../db/types.ts'
 
 import { computeReceiptTotals } from './money.ts'
-import { findCategory, paymentMethodLabel } from './receipt-categories.ts'
+import {
+  findCategory,
+  paymentMethodLabel,
+  paymentReferenceLabel,
+} from './receipt-categories.ts'
 import { RECEIPT_STATUS_LABELS } from './receipt-status.ts'
 import type { BusinessProfile } from './settings.ts'
 import { amountInWords } from './words.ts'
@@ -16,6 +20,7 @@ export interface PrintableReceipt {
   propertyName: string
   propertyType: string
   paymentMethod: string
+  referenceLabel: string
   referenceNumber: string
   description: string
   notes: string
@@ -67,6 +72,7 @@ export function buildPrintableReceipt(
     propertyName: receipt.propertyName ?? '',
     propertyType: receipt.propertyType ?? '',
     paymentMethod: paymentMethodLabel(receipt.paymentMethod),
+    referenceLabel: paymentReferenceLabel(receipt.paymentMethod),
     referenceNumber: receipt.referenceNumber ?? '',
     description: receipt.description ?? '',
     notes: receipt.notes ?? '',

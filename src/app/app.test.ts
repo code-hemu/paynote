@@ -96,6 +96,7 @@ function createStorage(): AppStorage {
       quotaBytes: 8192,
       recordCount: 0,
       persistent: true,
+      databasePath: '/paynote.sqlite3',
       detail: 'Records are saved in the browser private file system on this device.',
     }),
   }

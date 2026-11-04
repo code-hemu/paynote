@@ -263,7 +263,7 @@ export function createBackupPage(
 
     if (
       !globalThis.confirm(
-        'This permanently deletes every customer, property, receipt, and setting. This cannot be undone. Continue?',
+        'This permanently deletes every customer, property, receipt, and setting from both Individual and Business. This cannot be undone. Continue?',
       )
     ) {
       return
@@ -328,6 +328,11 @@ export function createBackupPage(
     setNotice('')
   }
 
+  function handleProfileChanged() {
+    handleClear()
+    void refresh()
+  }
+
   elements.exportButton.addEventListener('click', () => void handleExport())
   elements.fileInput.addEventListener('change', handleFileChange)
   elements.restoreButton.addEventListener('click', () => void handleRestore())
@@ -390,6 +395,7 @@ export function createBackupPage(
   }
 
   elements.csvButton?.addEventListener('click', () => void handleCsv())
+  view?.addEventListener('paynote:profile-changed', handleProfileChanged)
 
   setBusy(false)
 
@@ -406,6 +412,7 @@ export function createBackupPage(
       elements.dropZone.removeEventListener('dragleave', handleDragLeave)
       elements.dropZone.removeEventListener('drop', handleDrop)
       elements.deleteAllButton?.removeEventListener('click', handleDeleteAllClick)
+      view?.removeEventListener('paynote:profile-changed', handleProfileChanged)
     },
   }
 }

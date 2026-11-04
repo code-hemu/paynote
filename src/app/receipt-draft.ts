@@ -1,6 +1,13 @@
+import { getActiveProfile, type DbProfile } from '../db/profile.ts'
 import type { ReceiptFormValues } from '../domain/receipt-form.ts'
 
 export const RECEIPT_DRAFT_KEY = 'paynote.receipt.draft.v1'
+
+export function receiptDraftKey(
+  profile: DbProfile = getActiveProfile(),
+): string {
+  return `${RECEIPT_DRAFT_KEY}.${profile}`
+}
 
 export interface ReceiptDraft {
   savedAt: string
@@ -26,7 +33,7 @@ export function saveReceiptDraft(
 
   try {
     store.setItem(
-      RECEIPT_DRAFT_KEY,
+      receiptDraftKey(),
       JSON.stringify({ savedAt: now.toISOString(), values }),
     )
   } catch {
@@ -42,7 +49,7 @@ export function loadReceiptDraft(
   }
 
   try {
-    const raw = store.getItem(RECEIPT_DRAFT_KEY)
+    const raw = store.getItem(receiptDraftKey())
 
     if (!raw) {
       return null
@@ -68,7 +75,7 @@ export function loadReceiptDraft(
 
 export function clearReceiptDraft(store: Storage | null = storage()): void {
   try {
-    store?.removeItem(RECEIPT_DRAFT_KEY)
+    store?.removeItem(receiptDraftKey())
   } catch {
     return
   }

@@ -12,6 +12,10 @@ import {
   deserializeError,
 } from './errors.ts'
 import {
+  getActiveProfile,
+  type DbProfile,
+} from './profile.ts'
+import {
   isDbResponse,
   type DbHealthResult,
   type DbInitResult,
@@ -53,6 +57,7 @@ export interface SqliteHealth extends DbHealthResult {
 export interface SqliteClientOptions {
   createWorker?: () => WorkerLike
   timeoutMs?: number
+  profile?: DbProfile
 }
 
 interface PendingRequest {
@@ -83,6 +88,7 @@ function defaultCreateWorker(): WorkerLike {
 export class SqliteClient {
   private readonly createWorker: () => WorkerLike
   private readonly timeoutMs: number
+  private profile: DbProfile
   private worker: WorkerLike | null = null
   private pending = new Map<number, PendingRequest>()
   private nextId = 1
@@ -92,6 +98,11 @@ export class SqliteClient {
   constructor(options: SqliteClientOptions = {}) {
     this.createWorker = options.createWorker ?? defaultCreateWorker
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    this.profile = options.profile ?? getActiveProfile()
+  }
+
+  getProfile(): DbProfile {
+    return this.profile
   }
 
   async init(): Promise<DbInitResult> {
@@ -100,7 +111,7 @@ export class SqliteClient {
     }
 
     if (!this.initPromise) {
-      this.initPromise = this.request('init')
+      this.initPromise = this.send('init', { profile: this.profile })
         .then(async (result) => {
           this.initResult = result
           await requestPersistentStorage()
@@ -113,6 +124,37 @@ export class SqliteClient {
     }
 
     return this.initPromise
+  }
+
+  async switchProfile(profile: DbProfile): Promise<DbInitResult> {
+    if (profile === this.profile && this.initResult) {
+      return this.initResult
+    }
+
+    if (this.initPromise) {
+      await this.initPromise.catch(() => undefined)
+    }
+
+    if (profile === this.profile && this.initResult) {
+      return this.initResult
+    }
+
+    const previousProfile = this.profile
+    const previousInitResult = this.initResult
+    this.profile = profile
+    this.initPromise = null
+    this.initResult = null
+
+    try {
+      const result = await this.send('init', { profile })
+      this.initResult = result
+      await requestPersistentStorage()
+      return result
+    } catch (error) {
+      this.profile = previousProfile
+      this.initResult = previousInitResult
+      throw error
+    }
   }
 
   async health(): Promise<SqliteHealth> {
@@ -323,7 +365,18 @@ export class SqliteClient {
     this.pending.clear()
   }
 
-  private request<M extends DbMethod>(
+  private async request<M extends DbMethod>(
+    method: M,
+    params?: DbMethodMap[M]['params'],
+  ): Promise<DbMethodMap[M]['result']> {
+    if (method !== 'init' && method !== 'close') {
+      await this.init()
+    }
+
+    return this.send(method, params)
+  }
+
+  private send<M extends DbMethod>(
     method: M,
     params?: DbMethodMap[M]['params'],
   ): Promise<DbMethodMap[M]['result']> {

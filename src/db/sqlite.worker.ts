@@ -12,6 +12,10 @@ import type {
 
 import { deleteAllData, exportBackup, restoreBackup } from './backup.ts'
 import {
+  getDatabaseProfile,
+  setDatabaseProfile,
+} from './context.ts'
+import {
   createCustomer,
   deleteCustomer,
   getCustomer,
@@ -21,11 +25,9 @@ import {
 } from './customers.ts'
 import { getCustomerDetail, getPropertyDetail } from './details.ts'
 import {
-  DATABASE_DIRECTORY,
-  DATABASE_FILE,
-  DATABASE_LOCK,
-  DATABASE_VFS,
+  databaseConfigFor,
   STORAGE_TYPE,
+  type DatabaseConfig,
 } from './constants.ts'
 import {
   DbBusyError,
@@ -35,8 +37,13 @@ import {
   toDbError,
 } from './errors.ts'
 import { migrateDatabase, readSchemaVersion } from './migrations.ts'
+import {
+  DEFAULT_DB_PROFILE,
+  isDbProfile,
+  type DbProfile,
+} from './profile.ts'
 import { getReportSummary } from './reports.ts'
-import { listSettings, setSettings } from './settings.ts'
+import { listSettings, setSetting, setSettings } from './settings.ts'
 import {
   createProperty,
   deleteProperty,
@@ -79,8 +86,9 @@ let database: Database | null = null
 let pool: SAHPoolUtil | null = null
 let releaseLock: (() => void) | null = null
 let initPromise: Promise<DbInitResult> | null = null
+let activeConfig: DatabaseConfig = databaseConfigFor(DEFAULT_DB_PROFILE)
 
-async function acquireDatabaseLock() {
+async function acquireDatabaseLock(lockName: string) {
   const locks = globalThis.navigator?.locks
 
   if (!locks) {
@@ -98,7 +106,7 @@ async function acquireDatabaseLock() {
 
   try {
     lockRequest = locks.request(
-      DATABASE_LOCK,
+      lockName,
       { mode: 'exclusive', ifAvailable: true },
       (lock) => {
         if (!lock) {
@@ -142,8 +150,10 @@ function releaseDatabaseLock() {
   release()
 }
 
-async function initializeDatabase(): Promise<DbInitResult> {
-  await acquireDatabaseLock()
+async function initializeDatabase(profile: DbProfile): Promise<DbInitResult> {
+  setDatabaseProfile(profile)
+  activeConfig = databaseConfigFor(profile)
+  await acquireDatabaseLock(activeConfig.lock)
 
   try {
     const sqlite3 = await initializeSqlite({
@@ -151,17 +161,18 @@ async function initializeDatabase(): Promise<DbInitResult> {
     })
 
     pool = await sqlite3.installOpfsSAHPoolVfs({
-      name: DATABASE_VFS,
-      directory: DATABASE_DIRECTORY,
+      name: activeConfig.vfs,
+      directory: activeConfig.directory,
       initialCapacity: 6,
     })
 
-    database = new pool.OpfsSAHPoolDb(DATABASE_FILE)
+    database = new pool.OpfsSAHPoolDb(activeConfig.file)
     database.exec('PRAGMA foreign_keys = ON')
     database.exec('PRAGMA journal_mode = DELETE')
     database.exec('PRAGMA synchronous = NORMAL')
     database.exec('PRAGMA busy_timeout = 5000')
     migrateDatabase(database)
+    ensureProfileSetting(database, profile)
 
     return readDatabaseInfo()
   } catch (error) {
@@ -170,13 +181,26 @@ async function initializeDatabase(): Promise<DbInitResult> {
   }
 }
 
-async function getDatabase(): Promise<Database> {
+function ensureProfileSetting(db: Database, profile: DbProfile) {
+  const current = db.selectValue(
+    "SELECT value FROM settings WHERE profile = ? AND key = 'profile.type'",
+    [profile],
+  )
+
+  if (current !== profile) {
+    setSetting(db, 'profile.type', profile)
+  }
+}
+
+async function getDatabase(profile?: DbProfile): Promise<Database> {
   if (database) {
     return database
   }
 
   if (!initPromise) {
-    initPromise = initializeDatabase()
+    initPromise = initializeDatabase(
+      isDbProfile(profile) ? profile : activeConfig.profile,
+    )
   }
 
   try {
@@ -200,17 +224,19 @@ function readDatabaseInfo(): DatabaseInfo {
     throw new Error('The SQLite database is not open.')
   }
 
+  const profile = getDatabaseProfile()
   const recordCount = database.selectValue(
     `SELECT
-      (SELECT COUNT(*) FROM customers) +
-      (SELECT COUNT(*) FROM properties) +
-      (SELECT COUNT(*) FROM receipts)`,
+      (SELECT COUNT(*) FROM customers WHERE profile = ?) +
+      (SELECT COUNT(*) FROM properties WHERE profile = ?) +
+      (SELECT COUNT(*) FROM receipts WHERE profile = ?)`,
+    [profile, profile, profile],
   )
 
   return {
     schemaVersion: readSchemaVersion(database),
     recordCount: toNumber(recordCount),
-    databasePath: DATABASE_FILE,
+    databasePath: activeConfig.file,
     storageType: STORAGE_TYPE,
   }
 }
@@ -236,10 +262,30 @@ async function dispatch(request: DbRequest): Promise<unknown> {
     return null
   }
 
+  if (request.method === 'init') {
+    const profile = isDbProfile(request.params?.profile)
+      ? request.params.profile
+      : activeConfig.profile
+
+    if (database) {
+      const previousProfile = getDatabaseProfile()
+      setDatabaseProfile(profile)
+
+      try {
+        ensureProfileSetting(database, profile)
+      } catch (error) {
+        setDatabaseProfile(previousProfile)
+        throw error
+      }
+    }
+
+    await getDatabase(profile)
+    return readDatabaseInfo()
+  }
+
   const db = await getDatabase()
 
   switch (request.method) {
-    case 'init':
     case 'health':
       return readDatabaseInfo()
     case 'customers.list':

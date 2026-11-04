@@ -203,8 +203,13 @@ export function createDashboard(
     }
   }
 
+  function onProfileChanged() {
+    void refresh()
+  }
+
   view?.addEventListener('hashchange', onRouteChange)
   view?.addEventListener('paynote:data-changed', onDataChanged)
+  view?.addEventListener('paynote:profile-changed', onProfileChanged)
 
   if (elements.root.closest<HTMLElement>('[data-route]')?.hidden !== true) {
     void refresh()
@@ -217,6 +222,7 @@ export function createDashboard(
       requestId += 1
       view?.removeEventListener('hashchange', onRouteChange)
       view?.removeEventListener('paynote:data-changed', onDataChanged)
+      view?.removeEventListener('paynote:profile-changed', onProfileChanged)
     },
   }
 }

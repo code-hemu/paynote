@@ -3,6 +3,7 @@ import { describe, expect, it } from '@guchho/test'
 import type { Receipt } from '../db/types.ts'
 
 import { buildPrintableReceipt } from './print.ts'
+import { businessProfileFromSettings, SETTING_KEYS } from './settings.ts'
 
 function makeReceipt(overrides: Partial<Receipt> = {}): Receipt {
   return {
@@ -57,6 +58,7 @@ describe('printable receipt', () => {
     expect(printable.customerName).toBe('Asha Rao')
     expect(printable.propertyName).toBe('Main Shop')
     expect(printable.paymentMethod).toBe('UPI')
+    expect(printable.referenceLabel).toBe('Transaction number')
     expect(printable.details).toEqual([
       { label: 'Tenant name', value: 'Asha Rao' },
       { label: 'Unknown Field', value: 'value' },
@@ -67,6 +69,32 @@ describe('printable receipt', () => {
     expect(printable.amountWords).toBe(
       'One Thousand Two Hundred Fifty Rupees and Fifty Paise Only',
     )
+  })
+
+  it('shows the full name for individuals and the business name for businesses', () => {
+    const receipt = makeReceipt()
+    const settings = {
+      [SETTING_KEYS.fullName]: 'Asha Rao',
+      [SETTING_KEYS.businessName]: 'Asha Traders',
+    }
+
+    const individual = buildPrintableReceipt(
+      receipt,
+      businessProfileFromSettings({
+        ...settings,
+        [SETTING_KEYS.profileType]: 'individual',
+      }),
+    )
+    expect(individual.business.name).toBe('Asha Rao')
+
+    const business = buildPrintableReceipt(
+      receipt,
+      businessProfileFromSettings({
+        ...settings,
+        [SETTING_KEYS.profileType]: 'business',
+      }),
+    )
+    expect(business.business.name).toBe('Asha Traders')
   })
 
   it('uses the stored amount when a receipt has no line items', () => {

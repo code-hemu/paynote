@@ -46,6 +46,7 @@ export function createApp(
 
   const info = storage.getAppInfo()
   let loaded = false
+  let statusRequestId = 0
 
   setField(doc, 'app-name', info.appName)
   setField(doc, 'app-version', `v${info.appVersion}`)
@@ -166,6 +167,7 @@ export function createApp(
     }
 
     setField(doc, 'record-count', String(health.recordCount))
+    setField(doc, 'database-path', health.databasePath || STORAGE_LOCATION)
     setField(doc, 'usage-bytes', formatBytes(health.usageBytes))
     setField(
       doc,
@@ -209,13 +211,25 @@ export function createApp(
   }
 
   async function refreshStatus() {
+    const current = ++statusRequestId
+
     if (!loaded) {
       setStatus('Checking storage', 'loading')
     }
 
     try {
-      renderHealth(await storage.getStorageHealth())
+      const health = await storage.getStorageHealth()
+
+      if (current !== statusRequestId) {
+        return
+      }
+
+      renderHealth(health)
     } catch (error) {
+      if (current !== statusRequestId) {
+        return
+      }
+
       renderError(error)
     }
   }
@@ -230,6 +244,10 @@ export function createApp(
     }
   }
 
+  function handleProfileChanged() {
+    void refreshStatus()
+  }
+
   function navigate(path: string) {
     const nextPath = normalizePath(path)
 
@@ -241,6 +259,7 @@ export function createApp(
   }
 
   view.addEventListener('hashchange', handleHashChange)
+  view.addEventListener('paynote:profile-changed', handleProfileChanged)
   doc.addEventListener('visibilitychange', handleVisibilityChange)
   retryButton?.addEventListener('click', () => {
     void refreshStatus()
@@ -259,6 +278,7 @@ export function createApp(
     destroy() {
       view.clearInterval(refreshTimer)
       view.removeEventListener('hashchange', handleHashChange)
+      view.removeEventListener('paynote:profile-changed', handleProfileChanged)
       doc.removeEventListener('visibilitychange', handleVisibilityChange)
     },
   }

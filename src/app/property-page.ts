@@ -191,6 +191,7 @@ export function createPropertyPage(
   doc: Document,
   deps: PropertyPageDeps = {},
 ): PropertyPageController {
+  const view = doc.defaultView
   const elements = queryElements(doc)
   const get = deps.get ?? propertyService.getProperty
   const getDetail = deps.getDetail ?? propertyService.getPropertyDetail
@@ -502,6 +503,17 @@ export function createPropertyPage(
     })()
   }
 
+  function handleProfileChanged() {
+    editingId = null
+    detailId = null
+    deletingId = null
+    submitting = false
+    elements.saveButton.disabled = false
+    setNotice('')
+    showView('list')
+    void list.refresh()
+  }
+
   elements.addButton.addEventListener('click', openAdd)
   elements.emptyAdd?.addEventListener('click', openAdd)
   elements.cancelButton.addEventListener('click', () => {
@@ -525,6 +537,7 @@ export function createPropertyPage(
   elements.deleteConfirm.addEventListener('click', () => {
     void confirmDeleteNow()
   })
+  view?.addEventListener('paynote:profile-changed', handleProfileChanged)
 
   return {
     refresh: () => list.refresh(),
@@ -533,6 +546,7 @@ export function createPropertyPage(
     openDetail,
     destroy() {
       list.destroy()
+      view?.removeEventListener('paynote:profile-changed', handleProfileChanged)
       elements.addButton.removeEventListener('click', openAdd)
       elements.emptyAdd?.removeEventListener('click', openAdd)
     },

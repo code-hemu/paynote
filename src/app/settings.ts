@@ -1,12 +1,20 @@
+import { databaseConfigFor } from '../db/constants.ts'
+import {
+  getActiveProfile,
+  isDbProfile,
+  type DbProfile,
+} from '../db/profile.ts'
 import {
   DEFAULT_SETTINGS,
+  SIGNATURE_MAX_LENGTH,
   formValuesToSettings,
   settingsToFormValues,
   validateSettings,
   type SettingsFormValues,
 } from '../domain/settings.ts'
-import * as settingsService from '../services/settings.ts'
 import { applyAppPreferences } from '../services/preferences.ts'
+import { switchProfile } from '../services/profile.ts'
+import * as settingsService from '../services/settings.ts'
 import { setFormValues, clearFormErrors, focusFirstField } from './form-dom.ts'
 
 export const THEME_KEY = 'paynote.theme'
@@ -58,6 +66,10 @@ interface SettingsElements {
   signaturePadClear: HTMLButtonElement | null
   signaturePadSave: HTMLButtonElement | null
   signaturePadCancel: HTMLButtonElement | null
+  profileDialog: HTMLDialogElement
+  profileDialogMessage: HTMLElement
+  profileDialogConfirm: HTMLButtonElement
+  profileDialogCancel: HTMLButtonElement
 }
 
 const FIELD_MAP: Record<keyof SettingsFormValues, string> = {
@@ -223,10 +235,13 @@ class SignaturePad {
     return this.strokes.length === 0
   }
 
-  toDataUrl() {
+  toDataUrl(maxLength = SIGNATURE_MAX_LENGTH) {
     const exportCanvas = document.createElement('canvas')
-    exportCanvas.width = 1120
-    exportCanvas.height = 360
+    const sourceWidth = Math.max(1, this.canvas.width)
+    const sourceHeight = Math.max(1, this.canvas.height)
+    const exportScale = Math.min(1, 1600 / Math.max(sourceWidth, sourceHeight))
+    exportCanvas.width = Math.max(1, Math.round(sourceWidth * exportScale))
+    exportCanvas.height = Math.max(1, Math.round(sourceHeight * exportScale))
     const exportCtx = exportCanvas.getContext('2d')
 
     if (!exportCtx) {
@@ -235,22 +250,70 @@ class SignaturePad {
 
     exportCtx.fillStyle = '#ffffff'
     exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height)
-    const rect = this.canvas.getBoundingClientRect()
-    const width = Math.max(1, rect.width)
-    const height = Math.max(1, rect.height)
-    exportCtx.drawImage(
-      this.canvas,
-      0,
-      0,
-      width,
-      height,
-      0,
-      0,
-      exportCanvas.width,
-      exportCanvas.height,
-    )
+    exportCtx.imageSmoothingEnabled = true
+    exportCtx.imageSmoothingQuality = 'high'
+    exportCtx.drawImage(this.canvas, 0, 0, exportCanvas.width, exportCanvas.height)
 
-    return exportCanvas.toDataURL('image/png')
+    const png = exportCanvas.toDataURL('image/png')
+    if (png.length <= maxLength) {
+      return png
+    }
+
+    const attempts: Array<{
+      scale: number
+      type: 'image/png' | 'image/webp' | 'image/jpeg'
+      quality?: number
+    }> = [
+      { scale: 0.9, type: 'image/png' },
+      { scale: 0.75, type: 'image/png' },
+      { scale: 0.5, type: 'image/png' },
+      { scale: 0.9, type: 'image/webp', quality: 0.95 },
+      { scale: 0.75, type: 'image/webp', quality: 0.9 },
+      { scale: 0.5, type: 'image/webp', quality: 0.85 },
+      { scale: 0.75, type: 'image/jpeg', quality: 0.92 },
+      { scale: 0.5, type: 'image/jpeg', quality: 0.85 },
+      { scale: 0.35, type: 'image/jpeg', quality: 0.75 },
+    ]
+
+    let smallest = png
+
+    for (const attempt of attempts) {
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.max(
+        1,
+        Math.round(exportCanvas.width * attempt.scale),
+      )
+      canvas.height = Math.max(
+        1,
+        Math.round(exportCanvas.height * attempt.scale),
+      )
+      const context = canvas.getContext('2d')
+
+      if (!context) {
+        continue
+      }
+
+      context.fillStyle = '#ffffff'
+      context.fillRect(0, 0, canvas.width, canvas.height)
+      context.imageSmoothingEnabled = true
+      context.imageSmoothingQuality = 'high'
+      context.drawImage(exportCanvas, 0, 0, canvas.width, canvas.height)
+
+      const dataUrl =
+        attempt.type === 'image/png'
+          ? canvas.toDataURL('image/png')
+          : canvas.toDataURL(attempt.type, attempt.quality)
+
+      if (dataUrl.length < smallest.length) {
+        smallest = dataUrl
+      }
+
+      if (dataUrl.length <= maxLength) {
+        return dataUrl
+      }
+    }
+
+    return smallest
   }
 
   destroy() {
@@ -338,6 +401,18 @@ function queryElements(doc: Document): SettingsElements {
     signaturePadCancel: doc.querySelector<HTMLButtonElement>(
       '[data-settings-signature-pad-cancel]',
     ),
+    profileDialog: doc.querySelector<HTMLDialogElement>(
+      '[data-settings-profile-dialog]',
+    )!,
+    profileDialogMessage: doc.querySelector<HTMLElement>(
+      '[data-settings-profile-dialog-message]',
+    )!,
+    profileDialogConfirm: doc.querySelector<HTMLButtonElement>(
+      '[data-settings-profile-dialog-confirm]',
+    )!,
+    profileDialogCancel: doc.querySelector<HTMLButtonElement>(
+      '[data-settings-profile-dialog-cancel]',
+    )!,
   }
 
   for (const [name, value] of Object.entries(elements)) {
@@ -386,6 +461,9 @@ export function createSettingsPage(
   const write = deps.setSettings ?? settingsService.setSettings
   const view = doc.defaultView
   let formDirty = false
+  let pendingProfile: DbProfile | null = null
+  let switchingProfile = false
+  let refreshRequestId = 0
 
   function setNotice(message: string) {
     elements.notice.textContent = message
@@ -567,6 +645,77 @@ export function createSettingsPage(
     })
   }
 
+  function loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = () => reject(new Error('Could not read the image.'))
+      image.src = src
+    })
+  }
+
+  async function prepareSignatureImage(
+    dataUrl: string,
+    maxLength: number,
+  ): Promise<string> {
+    const image = await loadImage(dataUrl)
+    const maxWidth = 1600
+    const maxHeight = 640
+    const scale = Math.min(
+      1,
+      maxWidth / Math.max(1, image.naturalWidth),
+      maxHeight / Math.max(1, image.naturalHeight),
+    )
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
+    const context = canvas.getContext('2d')
+
+    if (!context) {
+      return dataUrl
+    }
+
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+    const candidates = [
+      canvas.toDataURL('image/png'),
+      canvas.toDataURL('image/webp', 0.95),
+      canvas.toDataURL('image/webp', 0.85),
+    ]
+    const jpegCanvas = document.createElement('canvas')
+    jpegCanvas.width = canvas.width
+    jpegCanvas.height = canvas.height
+    const jpegContext = jpegCanvas.getContext('2d')
+
+    if (jpegContext) {
+      jpegContext.fillStyle = '#ffffff'
+      jpegContext.fillRect(0, 0, jpegCanvas.width, jpegCanvas.height)
+      jpegContext.imageSmoothingEnabled = true
+      jpegContext.imageSmoothingQuality = 'high'
+      jpegContext.drawImage(canvas, 0, 0)
+      candidates.push(
+        jpegCanvas.toDataURL('image/jpeg', 0.92),
+        jpegCanvas.toDataURL('image/jpeg', 0.85),
+      )
+    }
+
+    let smallest = candidates[0] ?? dataUrl
+
+    for (const candidate of candidates) {
+      if (candidate.length < smallest.length) {
+        smallest = candidate
+      }
+
+      if (candidate.length <= maxLength) {
+        return candidate
+      }
+    }
+
+    return smallest
+  }
+
   async function handlePhotoUpload(file: File) {
     setError('')
     setNotice('')
@@ -605,8 +754,9 @@ export function createSettingsPage(
     }
 
     try {
-      const dataUrl = await readFileAsDataUrl(file)
-      if (dataUrl.length > 5000) {
+      const rawDataUrl = await readFileAsDataUrl(file)
+      const dataUrl = await prepareSignatureImage(rawDataUrl, SIGNATURE_MAX_LENGTH)
+      if (dataUrl.length > SIGNATURE_MAX_LENGTH) {
         setError('Digital signature is too large. Please use a smaller image.')
         return
       }
@@ -689,11 +839,18 @@ export function createSettingsPage(
   }
 
   async function refresh(): Promise<void> {
+    const current = ++refreshRequestId
     setError('')
 
     try {
       const settings = await read()
+
+      if (current !== refreshRequestId) {
+        return
+      }
+
       const values = settingsToFormValues(settings)
+      values.profileType = getActiveProfile()
       applyAppPreferences(values)
 
       if (!formDirty) {
@@ -701,6 +858,10 @@ export function createSettingsPage(
       }
       elements.theme.value = readTheme(doc)
     } catch (error) {
+      if (current !== refreshRequestId) {
+        return
+      }
+
       setError(
         error instanceof Error ? error.message : 'Settings could not be loaded.',
       )
@@ -764,9 +925,9 @@ export function createSettingsPage(
     }
 
     try {
-      const dataUrl = pad.toDataUrl()
+      const dataUrl = pad.toDataUrl(SIGNATURE_MAX_LENGTH)
 
-      if (dataUrl.length > 5000) {
+      if (dataUrl.length > SIGNATURE_MAX_LENGTH) {
         setError('Signature is too large. Draw a smaller signature.')
         return
       }
@@ -794,6 +955,7 @@ export function createSettingsPage(
     clearFormErrors(doc, 'settings')
 
     const values = readForm()
+    values.profileType = getActiveProfile()
     const errors = validateSettings(values)
 
     if (Object.keys(errors).length > 0) {
@@ -880,6 +1042,122 @@ export function createSettingsPage(
     }
   }
 
+  function closeProfileDialog() {
+    if (elements.profileDialog.open) {
+      elements.profileDialog.close()
+    } else {
+      elements.profileDialog.removeAttribute('open')
+    }
+  }
+
+  function showProfileDialog(next: DbProfile) {
+    const active = getActiveProfile()
+    const nextLabel = databaseConfigFor(next).label
+    const activeLabel = databaseConfigFor(active).label
+
+    pendingProfile = next
+    elements.profileDialogMessage.textContent = `Switch to the ${nextLabel} workspace? ${activeLabel} and ${nextLabel} keep separate records. The current view will refresh in place.`
+    elements.profileDialogConfirm.disabled = false
+    elements.profileDialogCancel.disabled = false
+
+    if (!elements.profileDialog.open) {
+      if (typeof elements.profileDialog.showModal === 'function') {
+        elements.profileDialog.showModal()
+      } else {
+        elements.profileDialog.setAttribute('open', '')
+      }
+    }
+
+    elements.profileDialogConfirm.focus()
+  }
+
+  function cancelProfileSwitch() {
+    if (switchingProfile) {
+      return
+    }
+
+    pendingProfile = null
+    elements.profileDialogConfirm.disabled = false
+    elements.profileDialogCancel.disabled = false
+    closeProfileDialog()
+
+    const active = getActiveProfile()
+
+    for (const radio of doc.querySelectorAll<HTMLInputElement>(
+      '[data-settings-input="profileType"]',
+    )) {
+      radio.checked = radio.value === active
+    }
+
+    updatePreview({ ...readForm(), profileType: active })
+  }
+
+  function handleProfileDialogCancel(event: Event) {
+    event.preventDefault()
+    cancelProfileSwitch()
+  }
+
+  async function confirmProfileSwitch() {
+    if (!pendingProfile || switchingProfile) {
+      return
+    }
+
+    const next = pendingProfile
+    const nextLabel = databaseConfigFor(next).label
+    pendingProfile = null
+    switchingProfile = true
+    formDirty = false
+    setError('')
+    setNotice('')
+    elements.profileDialogMessage.textContent = `Switching to the ${nextLabel} workspace…`
+    elements.profileDialogConfirm.disabled = true
+    elements.profileDialogCancel.disabled = true
+
+    try {
+      await switchProfile(next)
+      await refresh()
+      view?.dispatchEvent(
+        new CustomEvent<DbProfile>('paynote:profile-changed', { detail: next }),
+      )
+      closeProfileDialog()
+      setNotice(`Switched to the ${nextLabel} workspace.`)
+    } catch (error) {
+      const active = getActiveProfile()
+
+      for (const radio of doc.querySelectorAll<HTMLInputElement>(
+        '[data-settings-input="profileType"]',
+      )) {
+        radio.checked = radio.value === active
+      }
+
+      updatePreview({ ...readForm(), profileType: active })
+      pendingProfile = next
+      elements.profileDialogMessage.textContent = `Could not switch to the ${nextLabel} workspace. ${error instanceof Error ? error.message : 'Try again.'}`
+      elements.profileDialogConfirm.disabled = false
+      elements.profileDialogCancel.disabled = false
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'The workspace could not be switched.',
+      )
+    } finally {
+      switchingProfile = false
+    }
+  }
+
+  function handleProfileTypeChange() {
+    const values = readForm()
+    const active = getActiveProfile()
+    const next = values.profileType
+
+    if (!isDbProfile(next) || next === active) {
+      updatePreview(values)
+      return
+    }
+
+    showProfileDialog(next)
+  }
+
   elements.form.addEventListener('submit', handleSubmit)
   elements.reset.addEventListener('click', handleReset)
   elements.theme.addEventListener('change', handleThemeChange)
@@ -888,10 +1166,12 @@ export function createSettingsPage(
     const target = event.target as HTMLInputElement | null
 
     if (target?.dataset.settingsInput === 'profileType') {
-      const values = readForm()
-      updatePreview(values)
+      handleProfileTypeChange()
     }
   })
+  elements.profileDialog.addEventListener('cancel', handleProfileDialogCancel)
+  elements.profileDialogConfirm.addEventListener('click', confirmProfileSwitch)
+  elements.profileDialogCancel.addEventListener('click', cancelProfileSwitch)
   elements.photoUpload?.addEventListener('click', () => {
     setError('')
     elements.photoFile?.click()
@@ -916,10 +1196,16 @@ export function createSettingsPage(
   elements.photoFile?.addEventListener('change', onPhotoFileChange)
   elements.signatureFile?.addEventListener('change', onSignatureFileChange)
 
+  function handleDataChanged() {
+    formDirty = false
+    void refresh()
+  }
+
   const handleResize = () => {
     signaturePad?.resize()
   }
   view?.addEventListener('resize', handleResize)
+  view?.addEventListener('paynote:data-changed', handleDataChanged)
 
   applyTheme(doc, readTheme(doc))
   elements.theme.value = readTheme(doc)
@@ -931,6 +1217,18 @@ export function createSettingsPage(
     destroy() {
       elements.form.removeEventListener('submit', handleSubmit)
       elements.form.removeEventListener('input', handleInput)
+      elements.profileDialog.removeEventListener(
+        'cancel',
+        handleProfileDialogCancel,
+      )
+      elements.profileDialogConfirm.removeEventListener(
+        'click',
+        confirmProfileSwitch,
+      )
+      elements.profileDialogCancel.removeEventListener(
+        'click',
+        cancelProfileSwitch,
+      )
       elements.photoUpload?.removeEventListener('click', () => {
         setError('')
         elements.photoFile?.click()
@@ -952,6 +1250,7 @@ export function createSettingsPage(
       elements.photoFile?.removeEventListener('change', onPhotoFileChange)
       elements.signatureFile?.removeEventListener('change', onSignatureFileChange)
       view?.removeEventListener('resize', handleResize)
+      view?.removeEventListener('paynote:data-changed', handleDataChanged)
       signaturePad?.destroy()
       signaturePad = null
     },

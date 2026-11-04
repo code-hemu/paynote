@@ -13,5 +13,6 @@ export interface StorageHealth {
   quotaBytes: number | null
   recordCount: number
   persistent?: boolean
+  databasePath: string
   detail: string
 }

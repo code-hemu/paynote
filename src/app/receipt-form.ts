@@ -9,6 +9,7 @@ import {
   findCategory,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
+  paymentReferenceLabel,
   RECEIPT_CATEGORIES,
 } from '../domain/receipt-categories.ts'
 import {
@@ -93,6 +94,7 @@ interface FormElements {
   date: HTMLInputElement
   amount: HTMLInputElement
   paymentMethod: HTMLSelectElement
+  referenceLabel: HTMLElement | null
   status: HTMLSelectElement
   details: HTMLElement
   items: HTMLElement
@@ -132,6 +134,7 @@ function queryElements(doc: Document): FormElements {
     date: doc.querySelector<HTMLInputElement>('[data-receipt-input="receiptDate"]')!,
     amount: doc.querySelector<HTMLInputElement>('[data-receipt-input="amount"]')!,
     paymentMethod: doc.querySelector<HTMLSelectElement>('[data-receipt-input="paymentMethod"]')!,
+    referenceLabel: doc.querySelector<HTMLElement>('[data-receipt-reference-label]'),
     status: doc.querySelector<HTMLSelectElement>('[data-receipt-input="status"]')!,
     details: doc.querySelector<HTMLElement>('[data-receipt-details]')!,
     items: doc.querySelector<HTMLElement>('[data-receipt-items]')!,
@@ -559,7 +562,22 @@ export function createReceiptForm(
     elements.status.value = status ?? 'issued'
   }
 
+  function updateReferenceLabel() {
+    if (!elements.referenceLabel) {
+      return
+    }
+
+    elements.referenceLabel.textContent = paymentReferenceLabel(
+      elements.paymentMethod.value,
+    )
+  }
+
   function resetForm() {
+    if (draftTimer !== undefined) {
+      clearTimeout(draftTimer)
+      draftTimer = undefined
+    }
+
     editingId = null
     dirty = false
     setFormValues(doc, 'receipt', {
@@ -578,6 +596,7 @@ export function createReceiptForm(
     statusOptions()
     renderCategoryFields()
     renderItems()
+    updateReferenceLabel()
     clearFormErrors(doc, 'receipt')
     updateTotals()
     elements.save.disabled = false
@@ -606,6 +625,7 @@ export function createReceiptForm(
 
     renderCategoryFields(values.details)
     renderItems(values.items)
+    updateReferenceLabel()
     updateTotals()
 
     if (values.customerId) {
@@ -841,6 +861,7 @@ export function createReceiptForm(
 
   function handleFieldChange() {
     markDirty()
+    updateReferenceLabel()
     updateTotals()
   }
 
@@ -990,6 +1011,7 @@ export function createReceiptForm(
 
   renderCategoryFields()
   statusOptions()
+  updateReferenceLabel()
 
   return {
     openAdd,

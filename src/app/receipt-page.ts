@@ -11,6 +11,7 @@ import { buildPrintableReceipt, type PrintableReceipt } from '../domain/print.ts
 import {
   findCategory,
   paymentMethodLabel,
+  paymentReferenceLabel,
 } from '../domain/receipt-categories.ts'
 import {
   RECEIPT_STATUS_LABELS,
@@ -167,7 +168,6 @@ export function createReceiptPage(
   let detailId: string | null = null
   let detailReceipt: Receipt | null = null
   let deletingId: string | null = null
-  let business: BusinessProfile | null = null
 
   const list: ReceiptListController = createReceiptList(doc, {
     load: deps.list,
@@ -322,7 +322,7 @@ export function createReceiptPage(
       ['Payment method', paymentMethodLabel(receipt.paymentMethod)],
       ['Receipt date', formatDate(receipt.receiptDate)],
       ['Payment period', receipt.paymentPeriod || '—'],
-      ['Reference number', receipt.referenceNumber || '—'],
+      [paymentReferenceLabel(receipt.paymentMethod), receipt.referenceNumber || '—'],
       ['Created', formatDate(receipt.createdAt)],
       ['Updated', formatDate(receipt.updatedAt)],
     ]
@@ -494,21 +494,15 @@ export function createReceiptPage(
   }
 
   async function loadBusiness(): Promise<BusinessProfile> {
-    if (business) {
-      return business
-    }
-
     if (deps.loadBusiness) {
-      business = await deps.loadBusiness()
-    } else {
-      try {
-        business = businessProfileFromSettings(await readSettings())
-      } catch {
-        business = { name: '', address: '', phone: '', email: '', logo: '' }
-      }
+      return deps.loadBusiness()
     }
 
-    return business
+    try {
+      return businessProfileFromSettings(await readSettings())
+    } catch {
+      return { name: '', address: '', phone: '', email: '', logo: '' }
+    }
   }
 
   async function printReceipt() {
@@ -533,36 +527,43 @@ export function createReceiptPage(
     const header = doc.createElement('header')
     header.className = 'receipt-sheet-header'
 
-    if (printable.business.logo) {
-      const logo = doc.createElement('img')
-      logo.className = 'receipt-sheet-logo'
-      logo.src = printable.business.logo
-      logo.alt = ''
-      header.append(logo)
-    } else if (printable.propertyType) {
-      header.append(createPropertyIcon(doc, printable.propertyType))
-    }
-
+    const titleBlock = doc.createElement('div')
+    titleBlock.className = 'receipt-sheet-header-title'
     const title = doc.createElement('h1')
     title.textContent = 'Receipt'
     const subtitle = doc.createElement('h2')
     subtitle.textContent = printable.category
+    const status = doc.createElement('span')
+    status.className = `receipt-sheet-header-status receipt-sheet-header-status-${printable.status.toLowerCase()}`
+    status.textContent = printable.status
+    const subtitleRow = doc.createElement('div')
+    subtitleRow.className = 'receipt-sheet-header-subtitle'
+    subtitleRow.append(subtitle, status)
     const tagline = doc.createElement('p')
     tagline.textContent = 'Official Payment Acknowledgement'
+    titleBlock.append(title, subtitleRow, tagline)
 
     const meta = doc.createElement('div')
-    meta.className = 'receipt-sheet-meta'
-    const metaReceipt = doc.createElement('div')
-    const metaReceiptLabel = doc.createElement('strong')
-    metaReceiptLabel.textContent = 'Receipt No.: '
-    metaReceipt.append(metaReceiptLabel, printable.receiptNumber)
-    const metaDate = doc.createElement('div')
-    const metaDateLabel = doc.createElement('strong')
-    metaDateLabel.textContent = 'Date: '
-    metaDate.append(metaDateLabel, formatDate(printable.receiptDate))
-    meta.append(metaReceipt, metaDate)
+    meta.className = 'receipt-sheet-header-meta'
 
-    header.append(title, subtitle, tagline, meta)
+    const metaReceipt = doc.createElement('div')
+    metaReceipt.className = 'receipt-sheet-meta-item'
+    const metaReceiptLabel = doc.createElement('span')
+    metaReceiptLabel.textContent = 'Receipt No.'
+    const metaReceiptValue = doc.createElement('strong')
+    metaReceiptValue.textContent = printable.receiptNumber
+    metaReceipt.append(metaReceiptLabel, metaReceiptValue)
+
+    const metaDate = doc.createElement('div')
+    metaDate.className = 'receipt-sheet-meta-item'
+    const metaDateLabel = doc.createElement('span')
+    metaDateLabel.textContent = 'Date'
+    const metaDateValue = doc.createElement('strong')
+    metaDateValue.textContent = formatDate(printable.receiptDate)
+    metaDate.append(metaDateLabel, metaDateValue)
+
+    meta.append(metaReceipt, metaDate)
+    header.append(titleBlock, meta)
     sheet.append(header)
 
     function appendSectionTitle(text: string) {
@@ -616,7 +617,7 @@ export function createReceiptPage(
     receiver.append(receiverName)
 
     if (printable.propertyName) {
-      appendDetailLine(receiver, `Property: ${printable.propertyName}`)
+      appendDetailLine(receiver, `Property: ${propertyLabel(printable)}`)
     }
 
     receiverBox.append(receiverHeading, receiver)
@@ -655,7 +656,7 @@ export function createReceiptPage(
     appendPaymentRow('Category', printable.category)
 
     if (printable.propertyName) {
-      appendPaymentRow('Property', printable.propertyName)
+      appendPaymentRow('Property', propertyLabel(printable))
     }
 
     const period = printable.details.find((detail) =>
@@ -669,10 +670,8 @@ export function createReceiptPage(
     appendPaymentRow('Payment Mode', printable.paymentMethod)
 
     if (printable.referenceNumber) {
-      appendPaymentRow('Reference', printable.referenceNumber)
+      appendPaymentRow(printable.referenceLabel, printable.referenceNumber)
     }
-
-    appendPaymentRow('Payment Status', printable.status)
 
     for (const detail of printable.details) {
       if (!skipLabels.has(detail.label.toLowerCase())) {
@@ -810,7 +809,17 @@ export function createReceiptPage(
   }
 
   function handleDataChanged() {
-    business = null
+    void loadListOptions()
+    void list.refresh()
+  }
+
+  function handleProfileChanged() {
+    detailId = null
+    detailReceipt = null
+    deletingId = null
+    form.reset()
+    setNotice('')
+    showView('list')
     void loadListOptions()
     void list.refresh()
   }
@@ -846,6 +855,7 @@ export function createReceiptPage(
   })
   view?.addEventListener('hashchange', handleRouteChange)
   view?.addEventListener('paynote:data-changed', handleDataChanged)
+  view?.addEventListener('paynote:profile-changed', handleProfileChanged)
   view?.addEventListener('paynote:open-receipt', handleOpenReceipt)
 
   handleRouteChange()
@@ -861,6 +871,7 @@ export function createReceiptPage(
       form.destroy()
       view?.removeEventListener('hashchange', handleRouteChange)
       view?.removeEventListener('paynote:data-changed', handleDataChanged)
+      view?.removeEventListener('paynote:profile-changed', handleProfileChanged)
       view?.removeEventListener('paynote:open-receipt', handleOpenReceipt)
     },
   }
@@ -894,33 +905,14 @@ function populateFilter(
   }
 }
 
-function formatQuantity(quantity: number): string {
-  return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+function propertyLabel(printable: PrintableReceipt): string {
+  return printable.propertyType
+    ? `${printable.propertyName} (${formatLabel(printable.propertyType)})`
+    : printable.propertyName
 }
 
-function createPropertyIcon(doc: Document, propertyType: string): SVGElement {
-  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  svg.setAttribute('class', 'receipt-sheet-icon')
-  svg.setAttribute('viewBox', '0 0 24 24')
-  svg.setAttribute('fill', 'none')
-  svg.setAttribute('stroke', 'currentColor')
-  svg.setAttribute('stroke-width', '1.6')
-  svg.setAttribute('stroke-linecap', 'round')
-  svg.setAttribute('stroke-linejoin', 'round')
-  svg.setAttribute('aria-hidden', 'true')
-
-  const paths =
-    propertyType === 'godown'
-      ? ['M3 21V9l9-5 9 5v12', 'M7 21v-7h10v7', 'M7 17h10']
-      : ['M3 10.5 12 3l9 7.5V21H3z', 'M9 21v-6h6v6']
-
-  for (const d of paths) {
-    const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path')
-    path.setAttribute('d', d)
-    svg.append(path)
-  }
-
-  return svg
+function formatQuantity(quantity: number): string {
+  return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
 }
 
 export function receiptStatusOptions(): Array<{ value: ReceiptStatus; label: string }> {

@@ -4,6 +4,7 @@ import type {
   RestoreSummary,
 } from '../domain/backup.ts'
 import type { ReportSummary } from '../domain/reports.ts'
+import type { DbProfile } from './profile.ts'
 import type { ReportOptions } from './reports.ts'
 import type { SettingRecord } from './types.ts'
 import type {
@@ -71,7 +72,7 @@ const DB_METHODS = [
 export type DbMethod = (typeof DB_METHODS)[number]
 
 export interface DbMethodMap {
-  init: { params: undefined; result: DbInitResult }
+  init: { params: { profile?: DbProfile } | undefined; result: DbInitResult }
   health: { params: undefined; result: DbHealthResult }
   close: { params: undefined; result: null }
   'customers.list': {

@@ -617,7 +617,15 @@ export function createReports(
     }
   }
 
+  function onProfileChanged() {
+    void (async () => {
+      await loadOptions().catch(() => undefined)
+      await refresh()
+    })()
+  }
+
   view?.addEventListener('hashchange', onRouteChange)
+  view?.addEventListener('paynote:profile-changed', onProfileChanged)
 
   if (page?.hidden !== true) {
     void refresh()
@@ -629,6 +637,7 @@ export function createReports(
       destroyed = true
       requestId += 1
       view?.removeEventListener('hashchange', onRouteChange)
+      view?.removeEventListener('paynote:profile-changed', onProfileChanged)
     },
   }
 }

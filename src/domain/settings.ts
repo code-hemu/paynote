@@ -116,6 +116,7 @@ const PREFIX_PATTERN = /^[A-Za-z0-9-]{1,10}$/
 const CURRENCY_PATTERN = /^[A-Za-z]{3}$/
 const WEBSITE_PATTERN = /^https?:\/\/\S+$/i
 const SETTING_MAX_LENGTH = 5000
+export const SIGNATURE_MAX_LENGTH = 300000
 
 export function validateSettings(values: SettingsFormValues): SettingsErrors {
   const errors: SettingsErrors = {}
@@ -173,7 +174,7 @@ export function validateSettings(values: SettingsFormValues): SettingsErrors {
     values.profileSignature,
     'profileSignature',
     'Digital signature',
-    SETTING_MAX_LENGTH,
+    SIGNATURE_MAX_LENGTH,
     errors,
   )
   checkLength(
@@ -353,9 +354,8 @@ export function settingsToFormValues(
 export function formValuesToSettings(
   values: SettingsFormValues,
 ): Record<string, string> {
-  const isIndividual = values.profileType === 'individual'
   const fullName = values.fullName.trim()
-  const businessName = isIndividual ? fullName : values.businessName.trim()
+  const businessName = values.businessName.trim()
 
   return {
     [SETTING_KEYS.profileType]: isProfileType(values.profileType)

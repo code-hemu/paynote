@@ -180,6 +180,7 @@ export function createCustomerPage(
   doc: Document,
   deps: CustomerPageDeps = {},
 ): CustomerPageController {
+  const view = doc.defaultView
   const elements = queryElements(doc)
   const get = deps.get ?? customerService.getCustomer
   const getDetail = deps.getDetail ?? customerService.getCustomerDetail
@@ -481,6 +482,17 @@ export function createCustomerPage(
     })()
   }
 
+  function handleProfileChanged() {
+    editingId = null
+    detailId = null
+    deletingId = null
+    submitting = false
+    elements.saveButton.disabled = false
+    setNotice('')
+    showView('list')
+    void list.refresh()
+  }
+
   elements.addButton.addEventListener('click', openAdd)
   elements.emptyAdd?.addEventListener('click', openAdd)
   elements.cancelButton.addEventListener('click', () => {
@@ -504,6 +516,7 @@ export function createCustomerPage(
   elements.deleteConfirm.addEventListener('click', () => {
     void confirmDeleteNow()
   })
+  view?.addEventListener('paynote:profile-changed', handleProfileChanged)
 
   return {
     refresh: () => list.refresh(),
@@ -512,6 +525,7 @@ export function createCustomerPage(
     openDetail,
     destroy() {
       list.destroy()
+      view?.removeEventListener('paynote:profile-changed', handleProfileChanged)
       elements.addButton.removeEventListener('click', openAdd)
       elements.emptyAdd?.removeEventListener('click', openAdd)
     },
