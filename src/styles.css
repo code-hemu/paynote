@@ -2055,6 +2055,238 @@ button {
   }
 }
 
+.receipt-sheet {
+  max-width: 46.875rem;
+  border: 1px solid #dce2ea;
+  padding: 2.8125rem;
+  color: #253247;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.45;
+}
+
+.receipt-sheet-header {
+  display: block;
+  text-align: center;
+  border-bottom: 3px solid #173c65;
+  padding-bottom: 1.375rem;
+}
+
+.receipt-sheet-logo {
+  display: block;
+  width: auto;
+  height: 3.5rem;
+  max-width: 10rem;
+  margin: 0 auto 0.75rem;
+  object-fit: contain;
+}
+
+.receipt-sheet-header h1 {
+  margin: 0;
+  color: #173c65;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: 0.125em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.receipt-sheet-header h2 {
+  margin: 0.5rem 0;
+  color: #253247;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.1875em;
+  text-transform: uppercase;
+}
+
+.receipt-sheet-header p {
+  margin: 0;
+  color: #788596;
+  font-size: 0.6875rem;
+  letter-spacing: 0.125em;
+  text-transform: uppercase;
+}
+
+.receipt-sheet-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.5625rem 0;
+  font-size: 0.8125rem;
+}
+
+.receipt-sheet-parties {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+.receipt-sheet-party-box {
+  border: 1px solid #dce2ea;
+  background: #f8fafc;
+  padding: 1rem 1.125rem;
+}
+
+.receipt-sheet-box-title {
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #dce2ea;
+  padding-bottom: 0.5rem;
+  color: #173c65;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09375em;
+  text-transform: uppercase;
+}
+
+.receipt-sheet-section-title {
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #dce2ea;
+  padding-bottom: 0.5rem;
+  color: #173c65;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09375em;
+  text-transform: uppercase;
+}
+
+.receipt-sheet-details {
+  font-size: 0.875rem;
+  line-height: 1.9;
+}
+
+.receipt-sheet-details p {
+  margin: 0;
+}
+
+.receipt-sheet-details strong {
+  color: #253247;
+}
+
+.receipt-sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.receipt-sheet-table th {
+  background: #173c65;
+  padding: 0.8125rem;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+}
+
+.receipt-sheet-table td {
+  border-bottom: 1px solid #e5e9ef;
+  padding: 0.75rem;
+  color: #253247;
+  text-align: left;
+}
+
+.receipt-sheet-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.receipt-sheet-table td:last-child {
+  font-weight: 600;
+}
+
+.receipt-sheet-items-table td:nth-child(n + 2),
+.receipt-sheet-items-table th:nth-child(n + 2) {
+  text-align: right;
+}
+
+.receipt-sheet-amount-box {
+  margin-top: 1.5625rem;
+  border: 1px solid #dce5f0;
+  background: #f2f6fb;
+  padding: 1.375rem;
+  text-align: center;
+}
+
+.receipt-sheet-amount {
+  color: #173c65;
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.receipt-sheet-amount-box p {
+  margin: 0.25rem 0 0;
+  color: #68778a;
+  font-size: 0.6875rem;
+  letter-spacing: 0.125em;
+  text-transform: uppercase;
+}
+
+.receipt-sheet-note-section {
+  margin-top: 1.25rem;
+}
+
+.receipt-sheet-note-section h3 {
+  margin: 0 0 0.25rem;
+  color: #173c65;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.receipt-sheet-note-section p {
+  margin: 0;
+  color: #253247;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.receipt-sheet-acknowledgement {
+  margin-top: 1.5625rem;
+  color: #253247;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+.receipt-sheet-signature {
+  width: 13.75rem;
+  margin: 4rem 0 0 auto;
+  color: #253247;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.receipt-sheet-signature-image {
+  display: block;
+  max-width: 10rem;
+  max-height: 3rem;
+  margin: 0 auto 0.5rem;
+  object-fit: contain;
+}
+
+.receipt-sheet-signature hr {
+  margin: 0 0 0.5rem;
+  border: 0;
+  border-top: 1px solid #333;
+}
+
+.receipt-sheet-signature strong {
+  color: #173c65;
+}
+
+.receipt-sheet-footer {
+  margin-top: 2.8125rem;
+  border-top: 1px solid #dce2ea;
+  padding-top: 0.9375rem;
+  color: #8a96a5;
+  font-size: 0.6875rem;
+  text-align: center;
+}
+
 .report-sheet h1 {
   margin: 0 0 0.25rem;
   font-size: 1.5rem;
