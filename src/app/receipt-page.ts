@@ -8,7 +8,6 @@ import type {
   ReceiptItem,
 } from '../db/types.ts'
 import { buildPrintableReceipt, type PrintableReceipt } from '../domain/print.ts'
-import { receiptQrText } from '../domain/receipt-qr.ts'
 import {
   findCategory,
   paymentMethodLabel,
@@ -29,6 +28,7 @@ import * as customerService from '../services/customers.ts'
 import type { PropertyLoader } from '../services/properties.ts'
 import * as propertyService from '../services/properties.ts'
 import { createQrSvg } from '../services/qr.ts'
+import { createReceiptQrLink } from '../services/receipt-share.ts'
 import * as receiptService from '../services/receipts.ts'
 import { readSettings } from '../services/settings.ts'
 import { formatCurrency, formatDate, formatLabel } from '../utils/format.ts'
@@ -543,9 +543,17 @@ export function createReceiptPage(
     printable: PrintableReceipt,
   ): Promise<ReceiptQr | undefined> {
     try {
+      const href = view?.location.href ?? ''
+
+      if (!/^https?:/i.test(href)) {
+        return undefined
+      }
+
+      const share = createReceiptQrLink(href, printable)
+
       return {
-        svg: await createQrSvg(receiptQrText(printable)),
-        link: '',
+        svg: await createQrSvg(share.url),
+        link: share.url,
       }
     } catch (error) {
       setNotice(errorMessage(error))

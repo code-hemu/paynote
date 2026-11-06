@@ -29,12 +29,16 @@ export function renderReceiptSheet(
   title.textContent = 'Receipt'
   const subtitle = doc.createElement('h2')
   subtitle.textContent = printable.category
-  const status = doc.createElement('span')
-  status.className = `receipt-sheet-header-status receipt-sheet-header-status-${printable.status.toLowerCase()}`
-  status.textContent = printable.status
   const subtitleRow = doc.createElement('div')
   subtitleRow.className = 'receipt-sheet-header-subtitle'
-  subtitleRow.append(subtitle, status)
+  subtitleRow.append(subtitle)
+
+  if (printable.status) {
+    const status = doc.createElement('span')
+    status.className = `receipt-sheet-header-status receipt-sheet-header-status-${printable.status.toLowerCase()}`
+    status.textContent = printable.status
+    subtitleRow.append(status)
+  }
   const tagline = doc.createElement('p')
   tagline.textContent = 'Official Payment Acknowledgement'
   titleBlock.append(title, subtitleRow, tagline)
@@ -285,13 +289,13 @@ export function renderReceiptSheet(
     qrBlock.className = 'receipt-sheet-qr'
     qrBlock.setAttribute(
       'aria-label',
-      `Scan for receipt ${printable.receiptNumber} details`,
+      `Scan to view receipt ${printable.receiptNumber}`,
     )
     const qrGraphic = doc.createElement('div')
     qrGraphic.className = 'receipt-sheet-qr-code'
     qrGraphic.innerHTML = options.qr.svg
     const qrLabel = doc.createElement('span')
-    qrLabel.textContent = 'Scan for receipt details'
+    qrLabel.textContent = 'Scan to view receipt'
     qrBlock.append(qrGraphic, qrLabel)
     signatureRow.append(qrBlock)
   }

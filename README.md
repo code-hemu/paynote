@@ -13,7 +13,7 @@ PayNote is a browser-based receipt and payment manager for small businesses. It 
 - **Backup & restore** — PIN-protected JSON export/import with merge or replace modes, validation, rollback, and receipt CSV export. Backups download as decrypted JSON.
 - **Security** — the SQLite database is encrypted at rest with AES-256-GCM. A 4-digit PIN unlocks the encryption key through PBKDF2-SHA256, and changing the PIN rewraps the existing key without re-encrypting the database. Local-only storage and no application data logging.
 - **Personalization** — business or individual profiles, logo/profile photo, drawn signature, receipt prefix/currency/tax settings, date and number formats, and light/dark/system themes.
-- **Sharing** — receipt QR codes containing the receipt number, date, type, issuer, payer, amount, and property.
+- **Sharing** — short, shareable receipt links with QR codes containing the receipt number, date, type, issuer, payer, amount, and property.
 - **PWA** — installable, offline app shell with a service worker and precached assets.
 - **Resilience** — single-tab database locking, draft autosave/recovery, low-storage warnings, and global error recovery UI.
 

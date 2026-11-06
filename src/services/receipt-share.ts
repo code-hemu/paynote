@@ -21,6 +21,7 @@ export interface ReceiptShareDetails {
 export interface ReceiptShareToken {
   ciphertext: string
   key: string
+  compact?: string
 }
 
 export interface ReceiptShareLink {
@@ -49,6 +50,9 @@ interface ShareWirePayload {
 const SHARE_VERSION = 1
 const SHARE_QUERY_KEY = 'p'
 const SHARE_FRAGMENT_KEY = 'k'
+const COMPACT_SHARE_KEY = 'r'
+const COMPACT_SHARE_VERSION = 1
+const COMPACT_FIELDS = 8
 const KEY_BYTES = 32
 const IV_BYTES = 12
 const TAG_BYTES = 16
@@ -78,6 +82,31 @@ export function receiptShareDetails(
     category: printable.category,
     amountPaise: printable.totalPaise,
   }
+}
+
+export function createReceiptQrLink(
+  baseUrl: string,
+  printable: PrintableReceipt,
+): ReceiptShareLink {
+  const details = receiptShareDetails(printable)
+  const payload = [
+    COMPACT_SHARE_VERSION,
+    printable.receiptNumber,
+    printable.receiptDate,
+    printable.category,
+    printable.business.name,
+    printable.customerName,
+    printable.totalPaise,
+    printable.propertyName,
+  ]
+  const encoded = encodeBase64Url(
+    new TextEncoder().encode(JSON.stringify(payload)),
+  )
+  const url = new URL(baseUrl)
+  url.search = ''
+  url.hash = `${COMPACT_SHARE_KEY}=${encoded}`
+
+  return { url: url.href, details }
 }
 
 export async function createReceiptShareLink(
@@ -126,18 +155,83 @@ export function readReceiptShareToken(href: string): ReceiptShareToken | null {
     return null
   }
 
+  const fragment = new URLSearchParams(url.hash.replace(/^#/, ''))
+  const compact = fragment.get(COMPACT_SHARE_KEY)
+
+  if (compact !== null) {
+    return { ciphertext: '', key: '', compact }
+  }
+
   const ciphertext = url.searchParams.get(SHARE_QUERY_KEY)
 
   if (ciphertext === null) {
     return null
   }
 
-  const fragment = new URLSearchParams(url.hash.replace(/^#/, ''))
-
   return {
     ciphertext,
     key: fragment.get(SHARE_FRAGMENT_KEY) ?? '',
   }
+}
+
+export function decodeCompactReceiptShare(
+  value: string,
+): ReceiptShareDetails {
+  try {
+    if (!value || value.length > MAX_CIPHERTEXT_LENGTH) {
+      throw new Error(INVALID_LINK_MESSAGE)
+    }
+
+    const payload = JSON.parse(
+      new TextDecoder().decode(decodeBase64Url(value)),
+    ) as unknown
+
+    if (
+      !Array.isArray(payload) ||
+      payload.length < COMPACT_FIELDS - 1 ||
+      payload[0] !== COMPACT_SHARE_VERSION
+    ) {
+      throw new Error(INVALID_LINK_MESSAGE)
+    }
+
+    const amountPaise = payload[6]
+
+    if (
+      !Number.isSafeInteger(amountPaise) ||
+      (amountPaise as number) < 0
+    ) {
+      throw new Error(INVALID_LINK_MESSAGE)
+    }
+
+    return {
+      version: SHARE_VERSION,
+      businessName: readString(payload[4]),
+      businessAddress: '',
+      businessPhone: '',
+      businessEmail: '',
+      receiptNumber: readString(payload[1]),
+      receiptDate: readString(payload[2]),
+      status: '',
+      customerName: readString(payload[5]),
+      customerPhone: '',
+      customerEmail: '',
+      customerAddress: '',
+      propertyName:
+        payload.length > 7 ? readOptionalString(payload[7]) : '',
+      category: readString(payload[3]),
+      amountPaise: amountPaise as number,
+    }
+  } catch {
+    throw new Error(INVALID_LINK_MESSAGE)
+  }
+}
+
+export async function parseReceiptShare(
+  token: ReceiptShareToken,
+): Promise<ReceiptShareDetails> {
+  return token.compact === undefined
+    ? decryptReceiptShare(token)
+    : decodeCompactReceiptShare(token.compact)
 }
 
 export async function decryptReceiptShare(

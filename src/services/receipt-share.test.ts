@@ -3,8 +3,11 @@ import { describe, expect, it } from '@guchho/test'
 import type { PrintableReceipt } from '../domain/print.ts'
 
 import {
+  createReceiptQrLink,
   createReceiptShareLink,
+  decodeCompactReceiptShare,
   decryptReceiptShare,
+  parseReceiptShare,
   readReceiptShareToken,
 } from './receipt-share.ts'
 
@@ -100,6 +103,62 @@ describe('receipt share links', () => {
 
     expect(details.customerName).toBe('राहुल शर्मा')
     expect(details.propertyName).toBe('मुख्य दुकान')
+  })
+
+  it('creates a short shareable QR link with the minimum receipt fields', async () => {
+    const link = createReceiptQrLink(
+      'https://example.com/paynote/index.html?old=1#/receipts',
+      printable(),
+    )
+    const url = new URL(link.url)
+    const encrypted = await createReceiptShareLink(
+      'https://example.com/paynote/index.html',
+      printable(),
+    )
+
+    expect(url.pathname).toBe('/paynote/index.html')
+    expect(url.search).toBe('')
+    expect(url.hash.startsWith('#r=')).toBe(true)
+    expect(link.url.length).toBeLessThan(encrypted.url.length)
+    expect(link.url).not.toContain('Asha Rao')
+    expect(link.url).not.toContain('PN-2026-0001')
+
+    const details = await parseReceiptShare(readReceiptShareToken(link.url)!)
+
+    expect(details).toEqual({
+      version: 1,
+      businessName: 'Asha Traders',
+      businessAddress: '',
+      businessPhone: '',
+      businessEmail: '',
+      receiptNumber: 'PN-2026-0001',
+      receiptDate: '2026-11-03',
+      status: '',
+      customerName: 'Asha Rao',
+      customerPhone: '',
+      customerEmail: '',
+      customerAddress: '',
+      propertyName: 'Main Shop',
+      category: 'Rent',
+      amountPaise: 125050,
+    })
+  })
+
+  it('keeps unicode in compact QR links', async () => {
+    const link = createReceiptQrLink(
+      'https://example.com/',
+      printable({ customerName: 'राहुल शर्मा', propertyName: 'मुख्य दुकान' }),
+    )
+    const details = await parseReceiptShare(readReceiptShareToken(link.url)!)
+
+    expect(details.customerName).toBe('राहुल शर्मा')
+    expect(details.propertyName).toBe('मुख्य दुकान')
+  })
+
+  it('rejects an invalid compact QR payload', () => {
+    expect(() => decodeCompactReceiptShare('not-json')).toThrow(
+      'invalid or has been altered',
+    )
   })
 
   it('returns null for links without a share payload', () => {

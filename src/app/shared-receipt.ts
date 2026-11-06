@@ -1,7 +1,7 @@
 import type { PrintableReceipt } from '../domain/print.ts'
 import { amountInWords } from '../domain/words.ts'
 import {
-  decryptReceiptShare,
+  parseReceiptShare,
   type ReceiptShareDetails,
   type ReceiptShareToken,
 } from '../services/receipt-share.ts'
@@ -38,7 +38,7 @@ export async function openSharedReceipt(
   doc.title = 'Receipt · PayNote'
 
   try {
-    const details = await decryptReceiptShare(token)
+    const details = await parseReceiptShare(token)
     const printable = printableFromShare(details)
     sheet.append(
       renderReceiptSheet(doc, printable, { footerMessage: '' }),
