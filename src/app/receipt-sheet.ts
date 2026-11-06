@@ -242,7 +242,10 @@ export function renderReceiptSheet(
     }
 
     itemsTable.append(itemsHead, itemsBody)
-    sheet.append(itemsTable)
+    const itemsScroll = doc.createElement('div')
+    itemsScroll.className = 'receipt-sheet-table-scroll'
+    itemsScroll.append(itemsTable)
+    sheet.append(itemsScroll)
   }
 
   const amountBox = doc.createElement('div')
