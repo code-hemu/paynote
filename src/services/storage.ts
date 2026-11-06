@@ -1,12 +1,11 @@
-import { databaseConfigFor, STORAGE_TYPE } from '../db/constants.ts'
+import { SECURE_DATABASE_PATH, STORAGE_TYPE } from '../db/constants.ts'
 import { DbError } from '../db/errors.ts'
 import { LATEST_SCHEMA_VERSION } from '../db/migrations.ts'
-import { getActiveProfile } from '../db/profile.ts'
 import type { AppInfo, StorageHealth } from '../types/system.ts'
 import { getDatabaseClient } from './database.ts'
 
 export function getStorageLocation(): string {
-  return databaseConfigFor(getActiveProfile()).file
+  return SECURE_DATABASE_PATH
 }
 
 export const STORAGE_LOCATION = getStorageLocation()
@@ -34,8 +33,8 @@ export async function getStorageHealth(): Promise<StorageHealth> {
       persistent: health.persistent,
       databasePath: health.databasePath,
       detail: health.persistent
-        ? 'Records are saved in the browser private file system on this device.'
-        : 'Records are saved, but this browser may evict them. Enable persistent storage to reduce that risk.',
+        ? 'Records are saved in an encrypted database on this device.'
+        : 'Records are encrypted, but this browser may evict them. Enable persistent storage to reduce that risk.',
     }
   } catch (error) {
     return {

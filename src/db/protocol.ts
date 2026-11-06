@@ -72,7 +72,10 @@ const DB_METHODS = [
 export type DbMethod = (typeof DB_METHODS)[number]
 
 export interface DbMethodMap {
-  init: { params: { profile?: DbProfile } | undefined; result: DbInitResult }
+  init: {
+    params: { profile?: DbProfile; key?: Uint8Array } | undefined
+    result: DbInitResult
+  }
   health: { params: undefined; result: DbHealthResult }
   close: { params: undefined; result: null }
   'customers.list': {

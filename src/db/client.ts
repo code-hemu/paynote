@@ -58,6 +58,7 @@ export interface SqliteClientOptions {
   createWorker?: () => WorkerLike
   timeoutMs?: number
   profile?: DbProfile
+  key?: Uint8Array
 }
 
 interface PendingRequest {
@@ -89,6 +90,7 @@ export class SqliteClient {
   private readonly createWorker: () => WorkerLike
   private readonly timeoutMs: number
   private profile: DbProfile
+  private key: Uint8Array | null
   private worker: WorkerLike | null = null
   private pending = new Map<number, PendingRequest>()
   private nextId = 1
@@ -99,6 +101,11 @@ export class SqliteClient {
     this.createWorker = options.createWorker ?? defaultCreateWorker
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
     this.profile = options.profile ?? getActiveProfile()
+    this.key = options.key ? new Uint8Array(options.key) : null
+  }
+
+  setKey(key: Uint8Array | null): void {
+    this.key = key ? new Uint8Array(key) : null
   }
 
   getProfile(): DbProfile {
@@ -111,7 +118,10 @@ export class SqliteClient {
     }
 
     if (!this.initPromise) {
-      this.initPromise = this.send('init', { profile: this.profile })
+      this.initPromise = this.send('init', {
+        profile: this.profile,
+        key: this.key ?? undefined,
+      })
         .then(async (result) => {
           this.initResult = result
           await requestPersistentStorage()
@@ -146,7 +156,10 @@ export class SqliteClient {
     this.initResult = null
 
     try {
-      const result = await this.send('init', { profile })
+      const result = await this.send('init', {
+        profile,
+        key: this.key ?? undefined,
+      })
       this.initResult = result
       await requestPersistentStorage()
       return result
@@ -288,6 +301,7 @@ export class SqliteClient {
     } finally {
       this.worker?.terminate()
       this.worker = null
+      this.key = null
       this.initPromise = null
       this.initResult = null
       this.rejectPending(new DbClientError('The database connection was closed.'))

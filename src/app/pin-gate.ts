@@ -1,9 +1,15 @@
 import {
+  closeDatabase,
+  eraseDatabaseStorage,
+} from '../services/database.ts'
+import { hasStoredDatabase } from '../services/encrypted-store.ts'
+import {
   PIN_LENGTH,
   isValidPin,
   pinService,
   type PinService,
 } from '../services/pin.ts'
+import { clearReceiptDrafts } from './receipt-draft.ts'
 
 import {
   clearFormErrors,
@@ -16,7 +22,11 @@ import { hasErrors, type FormErrors } from './form-validation.ts'
 
 export interface PinGateDeps {
   service?: PinService
-  onUnlocked?: () => void
+  onUnlocked?: (key: Uint8Array) => void | Promise<void>
+  onLocked?: () => void | Promise<void>
+  eraseStorage?: () => Promise<void>
+  hasExistingData?: () => Promise<boolean>
+  confirm?: (message: string) => boolean
 }
 
 export interface PinGate {
@@ -35,6 +45,8 @@ interface PinElements {
   unlockForm: HTMLFormElement
   unlockSubmit: HTMLButtonElement
   forgot: HTMLButtonElement
+  erase: HTMLButtonElement
+  resetForm: HTMLFormElement
   resetPanel: HTMLElement
   resetConfirm: HTMLButtonElement
   resetCancel: HTMLButtonElement
@@ -64,6 +76,8 @@ function queryElements(doc: Document): PinElements {
     unlockForm: required(doc, '[data-pin-unlock-form]'),
     unlockSubmit: required(doc, '[data-pin-unlock-submit]'),
     forgot: required(doc, '[data-pin-forgot]'),
+    erase: required(doc, '[data-pin-erase]'),
+    resetForm: required(doc, '[data-pin-reset-form]'),
     resetPanel: required(doc, '[data-pin-reset-panel]'),
     resetConfirm: required(doc, '[data-pin-reset-confirm]'),
     resetCancel: required(doc, '[data-pin-reset-cancel]'),
@@ -73,7 +87,7 @@ function queryElements(doc: Document): PinElements {
 
 function readValue(
   doc: Document,
-  prefix: 'pinsetup' | 'pinunlock',
+  prefix: 'pinsetup' | 'pinunlock' | 'pinreset',
   field: string,
 ): string {
   return (
@@ -84,7 +98,7 @@ function readValue(
 
 function setBusy(
   doc: Document,
-  prefix: 'pinsetup' | 'pinunlock',
+  prefix: 'pinsetup' | 'pinunlock' | 'pinreset',
   button: HTMLButtonElement,
   busy: boolean,
 ): void {
@@ -99,7 +113,7 @@ function setBusy(
 
 function focusFirstError(
   doc: Document,
-  prefix: 'pinsetup' | 'pinunlock',
+  prefix: 'pinsetup' | 'pinunlock' | 'pinreset',
   errors: FormErrors,
 ): void {
   const field = Object.keys(errors)[0]
@@ -129,11 +143,42 @@ export function validatePinSetup(pin: string, confirmPin: string): FormErrors {
   return errors
 }
 
+export function validatePinReset(
+  oldPin: string,
+  newPin: string,
+  confirmPin: string,
+): FormErrors {
+  const errors: FormErrors = {}
+
+  if (!oldPin) {
+    errors.oldPin = 'Enter your current PIN.'
+  } else if (!isValidPin(oldPin)) {
+    errors.oldPin = `PIN must be exactly ${PIN_LENGTH} digits.`
+  }
+
+  if (!newPin) {
+    errors.newPin = 'Enter a new PIN.'
+  } else if (!isValidPin(newPin)) {
+    errors.newPin = `PIN must be exactly ${PIN_LENGTH} digits.`
+  }
+
+  if (!confirmPin) {
+    errors.confirmPin = 'Confirm your new PIN.'
+  } else if (newPin !== confirmPin) {
+    errors.confirmPin = 'PINs do not match.'
+  }
+
+  return errors
+}
+
 export function createPinGate(
   doc: Document,
   deps: PinGateDeps = {},
 ): PinGate {
   const service = deps.service ?? pinService
+  const eraseStorage = deps.eraseStorage ?? eraseDatabaseStorage
+  const hasExistingData = deps.hasExistingData ?? hasStoredDatabase
+  const confirm = deps.confirm ?? ((message: string) => globalThis.confirm(message))
   const elements = queryElements(doc)
   let busy = false
   let booted = false
@@ -178,22 +223,18 @@ export function createPinGate(
     elements.resetPanel.hidden = false
     elements.title.textContent = 'Reset PIN'
     elements.description.textContent =
-      'Remove the current PIN and choose a new one.'
+      'Enter your current PIN, then choose a new one.'
     clearFormErrors(doc, 'pinsetup')
     clearFormErrors(doc, 'pinunlock')
+    clearFormErrors(doc, 'pinreset')
     setNotice('')
-    focusElement(elements.resetConfirm)
-  }
-
-  function resetPin() {
-    service.clearPin()
-    clearInputs('pinunlock')
-    showSetup()
-    setNotice('PIN removed. Create a new PIN to lock PayNote again.')
-    focusFirstField(doc, 'pin', 'pinsetup')
+    focusFirstField(doc, 'oldPin', 'pinreset')
   }
 
   function cancelReset() {
+    clearInputs('pinreset')
+    clearFormErrors(doc, 'pinreset')
+
     if (service.hasPin()) {
       showUnlock()
     } else {
@@ -201,16 +242,59 @@ export function createPinGate(
     }
   }
 
-  function unlock() {
-    const firstUnlock = !booted
+  async function handleReset(event?: Event) {
+    event?.preventDefault()
+
+    if (busy) {
+      return
+    }
+
+    const oldPin = readValue(doc, 'pinreset', 'oldPin')
+    const newPin = readValue(doc, 'pinreset', 'newPin')
+    const confirmPin = readValue(doc, 'pinreset', 'confirmPin')
+    const errors = validatePinReset(oldPin, newPin, confirmPin)
+
+    if (hasErrors(errors)) {
+      showFormErrors(doc, 'pinreset', errors)
+      focusFirstError(doc, 'pinreset', errors)
+      return
+    }
+
+    clearFormErrors(doc, 'pinreset')
+    setNotice('')
+    busy = true
+    setBusy(doc, 'pinreset', elements.resetConfirm, true)
+
+    try {
+      const key = await service.changePin(oldPin, newPin)
+
+      if (!key) {
+        showFormError(doc, 'pinreset', 'Current PIN is incorrect.')
+        focusFirstField(doc, 'oldPin', 'pinreset')
+        return
+      }
+
+      clearInputs('pinreset')
+      clearInputs('pinunlock')
+      await unlock(key)
+    } catch (error) {
+      showFormError(
+        doc,
+        'pinreset',
+        error instanceof Error ? error.message : 'The PIN could not be reset.',
+      )
+    } finally {
+      busy = false
+      setBusy(doc, 'pinreset', elements.resetConfirm, false)
+    }
+  }
+
+  async function unlock(key: Uint8Array) {
+    await deps.onUnlocked?.(key)
     booted = true
     elements.screen.hidden = true
     elements.appShell.hidden = false
     elements.lock.hidden = false
-
-    if (firstUnlock) {
-      deps.onUnlocked?.()
-    }
   }
 
   function lock() {
@@ -218,6 +302,8 @@ export function createPinGate(
     elements.appShell.hidden = true
     elements.lock.hidden = true
     clearInputs('pinunlock')
+    clearReceiptDrafts()
+    void Promise.resolve(deps.onLocked ?? closeDatabase).catch(() => undefined)
 
     if (service.hasPin()) {
       showUnlock()
@@ -250,16 +336,32 @@ export function createPinGate(
     setBusy(doc, 'pinsetup', elements.setupSubmit, true)
 
     try {
-      await service.createPin(pin)
+      if (await hasExistingData()) {
+        showFormError(
+          doc,
+          'pinsetup',
+          'Encrypted records exist on this device, but the PIN record is missing or damaged. Use Forgot PIN? Erase all data to start over.',
+        )
+        return
+      }
+
+      const key = await service.createPin(pin)
       clearInputs('pinsetup')
-      unlock()
+      await unlock(key)
     } catch (error) {
-      showFormError(
-        doc,
-        'pinsetup',
-        error instanceof Error ? error.message : 'The PIN could not be saved.',
-      )
-      focusFirstField(doc, 'pin', 'pinsetup')
+      const message =
+        error instanceof Error ? error.message : 'The PIN could not be saved.'
+
+      if (service.hasPin()) {
+        clearInputs('pinsetup')
+        showUnlock()
+        setNotice(
+          `Your PIN was saved, but the encrypted database could not be opened. ${message}`,
+        )
+      } else {
+        showFormError(doc, 'pinsetup', message)
+        focusFirstField(doc, 'pin', 'pinsetup')
+      }
     } finally {
       busy = false
       setBusy(doc, 'pinsetup', elements.setupSubmit, false)
@@ -289,16 +391,22 @@ export function createPinGate(
     setBusy(doc, 'pinunlock', elements.unlockSubmit, true)
 
     try {
-      if (await service.verifyPin(pin)) {
+      const key = await service.unlockPin(pin)
+
+      if (key) {
         clearInputs('pinunlock')
-        unlock()
+        await unlock(key)
       } else {
         showFormError(doc, 'pinunlock', 'Incorrect PIN. Try again.')
         clearInputs('pinunlock')
         focusFirstField(doc, 'pin', 'pinunlock')
       }
-    } catch {
-      showFormError(doc, 'pinunlock', 'The PIN could not be verified.')
+    } catch (error) {
+      showFormError(
+        doc,
+        'pinunlock',
+        error instanceof Error ? error.message : 'The PIN could not be verified.',
+      )
       clearInputs('pinunlock')
       focusFirstField(doc, 'pin', 'pinunlock')
     } finally {
@@ -307,7 +415,48 @@ export function createPinGate(
     }
   }
 
-  function clearInputs(prefix: 'pinsetup' | 'pinunlock') {
+  async function handleErase(event?: Event) {
+    event?.preventDefault()
+
+    if (busy) {
+      return
+    }
+
+    if (
+      !confirm(
+        'Erase all PayNote records and your PIN? The encrypted database cannot be recovered without the PIN. This cannot be undone.',
+      )
+    ) {
+      return
+    }
+
+    clearFormErrors(doc, 'pinunlock')
+    setNotice('')
+    busy = true
+    setBusy(doc, 'pinunlock', elements.unlockSubmit, true)
+
+    try {
+      await eraseStorage()
+      service.clearPin()
+      clearReceiptDrafts()
+      clearInputs('pinunlock')
+      clearInputs('pinreset')
+      booted = false
+      showSetup()
+      setNotice('All records and your PIN were erased. Create a new PIN to start over.')
+    } catch (error) {
+      showFormError(
+        doc,
+        'pinunlock',
+        error instanceof Error ? error.message : 'The workspace could not be erased.',
+      )
+    } finally {
+      busy = false
+      setBusy(doc, 'pinunlock', elements.unlockSubmit, false)
+    }
+  }
+
+  function clearInputs(prefix: 'pinsetup' | 'pinunlock' | 'pinreset') {
     for (const element of doc.querySelectorAll<HTMLElement>(
       `[data-${prefix}-input]`,
     )) {
@@ -329,6 +478,9 @@ export function createPinGate(
   const unlockEvent = (event: Event) => {
     void handleUnlock(event)
   }
+  const resetEvent = (event: Event) => {
+    void handleReset(event)
+  }
   const setupClick = () => {
     void handleSetup()
   }
@@ -340,21 +492,23 @@ export function createPinGate(
   }
   const forgotClick = () => {
     clearInputs('pinunlock')
+    clearInputs('pinreset')
     showReset()
-  }
-  const resetConfirmClick = () => {
-    resetPin()
   }
   const resetCancelClick = () => {
     cancelReset()
   }
+  const eraseClick = () => {
+    void handleErase()
+  }
 
   elements.setupForm.addEventListener('submit', setupEvent)
   elements.unlockForm.addEventListener('submit', unlockEvent)
+  elements.resetForm.addEventListener('submit', resetEvent)
   elements.setupSubmit.addEventListener('click', setupClick)
   elements.unlockSubmit.addEventListener('click', unlockClick)
   elements.forgot.addEventListener('click', forgotClick)
-  elements.resetConfirm.addEventListener('click', resetConfirmClick)
+  elements.erase.addEventListener('click', eraseClick)
   elements.resetCancel.addEventListener('click', resetCancelClick)
   elements.lock.addEventListener('click', lockClick)
 
@@ -368,10 +522,11 @@ export function createPinGate(
     destroy() {
       elements.setupForm.removeEventListener('submit', setupEvent)
       elements.unlockForm.removeEventListener('submit', unlockEvent)
+      elements.resetForm.removeEventListener('submit', resetEvent)
       elements.setupSubmit.removeEventListener('click', setupClick)
       elements.unlockSubmit.removeEventListener('click', unlockClick)
       elements.forgot.removeEventListener('click', forgotClick)
-      elements.resetConfirm.removeEventListener('click', resetConfirmClick)
+      elements.erase.removeEventListener('click', eraseClick)
       elements.resetCancel.removeEventListener('click', resetCancelClick)
       elements.lock.removeEventListener('click', lockClick)
     },

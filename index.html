@@ -212,8 +212,8 @@
               Set PIN
             </button>
             <p class="pin-hint">
-              Keep this PIN somewhere safe. You can reset it later from the unlock
-              screen if you forget it.
+              Keep this PIN somewhere safe. It protects the encryption key for your
+              records. If you forget it, the data cannot be recovered.
             </p>
           </form>
 
@@ -248,20 +248,84 @@
               type="button"
               data-pin-forgot
             >
-              Forgot PIN?
+              Reset PIN
+            </button>
+            <button
+              class="link-button pin-forgot"
+              type="button"
+              data-pin-erase
+            >
+              Forgot PIN? Erase all data
             </button>
           </form>
 
-          <div class="pin-reset" data-pin-reset-panel hidden>
+          <form
+            class="form pin-form pin-reset"
+            data-pin-reset-panel
+            data-pin-reset-form
+            novalidate
+            hidden
+          >
             <p class="pin-hint">
-              Resetting removes the current PIN and lets you create a new one. Your
-              records stay on this device. Anyone with access to this browser can
-              then set a new PIN and open PayNote.
+              Enter your current PIN, then choose a new PIN. Your records stay on
+              this device.
             </p>
+            <label class="field">
+              <span class="field-label">Current PIN</span>
+              <input
+                class="input pin-input"
+                type="password"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="4"
+                autocomplete="current-password"
+                data-pinreset-input="oldPin"
+              />
+              <span
+                class="field-error"
+                data-pinreset-field-error="oldPin"
+                hidden
+              ></span>
+            </label>
+            <label class="field">
+              <span class="field-label">New PIN</span>
+              <input
+                class="input pin-input"
+                type="password"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="4"
+                autocomplete="new-password"
+                data-pinreset-input="newPin"
+              />
+              <span
+                class="field-error"
+                data-pinreset-field-error="newPin"
+                hidden
+              ></span>
+            </label>
+            <label class="field">
+              <span class="field-label">Confirm new PIN</span>
+              <input
+                class="input pin-input"
+                type="password"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="4"
+                autocomplete="new-password"
+                data-pinreset-input="confirmPin"
+              />
+              <span
+                class="field-error"
+                data-pinreset-field-error="confirmPin"
+                hidden
+              ></span>
+            </label>
+            <p class="form-error" data-pinreset-form-error role="alert" hidden></p>
             <div class="form-actions">
               <button
                 class="button button-danger"
-                type="button"
+                type="submit"
                 data-pin-reset-confirm
               >
                 Reset PIN
@@ -274,11 +338,12 @@
                 Back
               </button>
             </div>
-          </div>
+          </form>
 
           <p class="pin-footer">
-            Your records stay offline on this device. The PIN only locks the
-            PayNote interface and does not encrypt the database.
+            Your records stay offline on this device and are encrypted with a key
+            protected by your PIN. If you forget the PIN, the data cannot be
+            recovered and must be erased.
           </p>
         </div>
       </div>
@@ -1942,6 +2007,20 @@
                   <p class="list-status" data-backup-export-status>
                     Export includes customers, properties, receipts, settings, and receipt numbering.
                   </p>
+                  <label class="field">
+                    <span class="field-label">Backup passphrase</span>
+                    <input
+                      class="input"
+                      type="password"
+                      autocomplete="new-password"
+                      minlength="8"
+                      data-backup-export-passphrase
+                    />
+                    <span class="field-hint">
+                      Required. Use at least 8 characters. You will need this passphrase to restore the file.
+                    </span>
+                  </label>
+                  <p class="form-error" data-backup-export-error role="alert" hidden></p>
                   <div class="form-actions">
                     <button class="button button-primary" type="button" data-backup-export>
                       Download backup
@@ -1964,6 +2043,18 @@
                   <svg class="card-icon" aria-hidden="true"><use href="#icon-shield"></use></svg>
                 </div>
                 <div class="card-content stack">
+                  <label class="field">
+                    <span class="field-label">Backup passphrase</span>
+                    <input
+                      class="input"
+                      type="password"
+                      autocomplete="current-password"
+                      data-backup-restore-passphrase
+                    />
+                    <span class="field-hint">
+                      Required for encrypted backups. Leave blank for older plaintext backups.
+                    </span>
+                  </label>
                   <label class="file-drop" data-backup-dropzone>
                     <input type="file" accept="application/json,.json" data-backup-file hidden />
                     <svg class="icon" aria-hidden="true"><use href="#icon-hard-drive"></use></svg>

@@ -80,3 +80,15 @@ export function clearReceiptDraft(store: Storage | null = storage()): void {
     return
   }
 }
+
+export function clearReceiptDrafts(
+  store: Storage | null = storage(),
+): void {
+  for (const profile of ['business', 'individual'] as const) {
+    try {
+      store?.removeItem(receiptDraftKey(profile))
+    } catch {
+      continue
+    }
+  }
+}

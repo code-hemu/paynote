@@ -66,6 +66,34 @@ describe('SQLite client', () => {
     expect(worker.messages).toHaveLength(1)
   })
 
+  it('passes the encryption key when opening and switching profiles', async () => {
+    const worker = new FakeWorker()
+    const key = new Uint8Array(32).fill(3)
+    const client = new SqliteClient({
+      createWorker: () => worker,
+      key,
+    })
+    const init = client.init()
+
+    expect(worker.messages[0]?.params).toEqual({
+      profile: 'business',
+      key,
+    })
+    worker.respond(worker.messages[0]?.id ?? 0, DATABASE_INFO)
+    await init
+    worker.messages.length = 0
+
+    const switching = client.switchProfile('individual')
+    await waitForMessages(worker, 1)
+
+    expect(worker.messages[0]?.params).toEqual({
+      profile: 'individual',
+      key,
+    })
+    worker.respond(worker.messages[0]?.id ?? 0, DATABASE_INFO)
+    await switching
+  })
+
   it('opens the database for the requested profile', async () => {
     const worker = new FakeWorker()
     const client = new SqliteClient({

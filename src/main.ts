@@ -13,6 +13,11 @@ import {
   markSharedReceiptNoIndex,
   openSharedReceipt,
 } from './app/shared-receipt.ts'
+import {
+  closeDatabase,
+  getDatabaseClient,
+  setDatabaseKey,
+} from './services/database.ts'
 import { refreshAppPreferences } from './services/preferences.ts'
 import { readReceiptShareToken } from './services/receipt-share.ts'
 
@@ -32,14 +37,20 @@ if (shareToken) {
   })
 } else {
   createPinGate(document, {
-    onUnlocked: () => {
+    onUnlocked: async (key) => {
+      setDatabaseKey(key)
+      await getDatabaseClient().init()
       bootstrapWorkspace()
+    },
+    onLocked: async () => {
+      await closeDatabase()
     },
   })
 }
 
 function bootstrapWorkspace() {
   if (bootstrapped) {
+    window.dispatchEvent(new CustomEvent('paynote:data-changed'))
     return
   }
 

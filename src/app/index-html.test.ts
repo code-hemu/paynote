@@ -112,11 +112,25 @@ describe('index.html shell', () => {
       'data-pin-setup-submit',
       'data-pin-unlock-submit',
       'data-pin-forgot',
+      'data-pin-erase',
+      'data-pin-reset-form',
+      'data-pinreset-input="oldPin"',
+      'data-pinreset-input="newPin"',
       'data-pin-reset-panel',
       'data-pin-reset-confirm',
       'data-pin-reset-cancel',
       'data-pin-lock',
       'data-app-shell hidden',
+    ]) {
+      expect(indexHtml).toContain(marker)
+    }
+  })
+
+  it('declares encrypted backup passphrase fields', () => {
+    for (const marker of [
+      'data-backup-export-passphrase',
+      'data-backup-export-error',
+      'data-backup-restore-passphrase',
     ]) {
       expect(indexHtml).toContain(marker)
     }
