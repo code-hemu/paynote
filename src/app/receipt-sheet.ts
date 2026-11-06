@@ -285,13 +285,13 @@ export function renderReceiptSheet(
     qrBlock.className = 'receipt-sheet-qr'
     qrBlock.setAttribute(
       'aria-label',
-      `Scan to view receipt ${printable.receiptNumber}`,
+      `Scan for receipt ${printable.receiptNumber} details`,
     )
     const qrGraphic = doc.createElement('div')
     qrGraphic.className = 'receipt-sheet-qr-code'
     qrGraphic.innerHTML = options.qr.svg
     const qrLabel = doc.createElement('span')
-    qrLabel.textContent = 'Scan to view receipt'
+    qrLabel.textContent = 'Scan for receipt details'
     qrBlock.append(qrGraphic, qrLabel)
     signatureRow.append(qrBlock)
   }

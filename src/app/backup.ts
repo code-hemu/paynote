@@ -18,7 +18,6 @@ export interface BackupDeps {
   restoreBackup?: typeof backupService.restoreBackup
   deleteAllData?: typeof backupService.deleteAllData
   verifyPin?: (pin: string) => Promise<boolean>
-  requestPin?: (message: string) => string | null
 }
 
 export interface BackupController {
@@ -48,6 +47,18 @@ interface BackupElements {
   errorMessage: HTMLElement
   statusLine: HTMLElement
   csvButton: HTMLButtonElement | null
+  pinModal: HTMLElement
+  pinForm: HTMLFormElement
+  pinInput: HTMLInputElement
+  pinError: HTMLElement
+  pinSubmit: HTMLButtonElement
+  pinCancel: HTMLButtonElement
+  deleteModal: HTMLElement
+  deleteForm: HTMLFormElement
+  deleteInput: HTMLInputElement
+  deleteError: HTMLElement
+  deleteSubmit: HTMLButtonElement
+  deleteCancel: HTMLButtonElement
 }
 
 function errorMessage(error: unknown): string {
@@ -77,6 +88,18 @@ function queryElements(doc: Document): BackupElements {
     errorMessage: doc.querySelector<HTMLElement>('[data-backup-error-message]')!,
     statusLine: doc.querySelector<HTMLElement>('[data-backup-status-line]')!,
     csvButton: doc.querySelector<HTMLButtonElement>('[data-backup-csv]'),
+    pinModal: doc.querySelector<HTMLElement>('[data-backup-pin-modal]')!,
+    pinForm: doc.querySelector<HTMLFormElement>('[data-backup-pin-form]')!,
+    pinInput: doc.querySelector<HTMLInputElement>('[data-backup-pin-input]')!,
+    pinError: doc.querySelector<HTMLElement>('[data-backup-pin-error]')!,
+    pinSubmit: doc.querySelector<HTMLButtonElement>('[data-backup-pin-submit]')!,
+    pinCancel: doc.querySelector<HTMLButtonElement>('[data-backup-pin-cancel]')!,
+    deleteModal: doc.querySelector<HTMLElement>('[data-backup-delete-modal]')!,
+    deleteForm: doc.querySelector<HTMLFormElement>('[data-backup-delete-form]')!,
+    deleteInput: doc.querySelector<HTMLInputElement>('[data-backup-delete-input]')!,
+    deleteError: doc.querySelector<HTMLElement>('[data-backup-delete-error]')!,
+    deleteSubmit: doc.querySelector<HTMLButtonElement>('[data-backup-delete-submit]')!,
+    deleteCancel: doc.querySelector<HTMLButtonElement>('[data-backup-delete-cancel]')!,
   }
 
   for (const [name, value] of Object.entries(elements)) {
@@ -98,9 +121,6 @@ export function createBackupPage(
   const restoreBackup = deps.restoreBackup ?? backupService.restoreBackup
   const deleteAllData = deps.deleteAllData ?? backupService.deleteAllData
   const verifyPin = deps.verifyPin ?? pinService.verifyPin
-  const requestPin =
-    deps.requestPin ??
-    ((message: string) => globalThis.prompt(message))
 
   let selected: BackupFile | null = null
   let selectedName = ''
@@ -139,33 +159,43 @@ export function createBackupPage(
     return ([...elements.mode].find((input) => input.checked)?.value ?? 'merge') as RestoreMode
   }
 
-  async function handleExport() {
+  function setPinError(message: string) {
+    elements.pinError.hidden = message === ''
+    elements.pinError.textContent = message
+  }
+
+  function setPinBusy(value: boolean) {
+    elements.pinInput.disabled = value
+    elements.pinSubmit.disabled = value
+    elements.pinCancel.disabled = value
+  }
+
+  function openPinDialog() {
     if (busy) {
       return
     }
 
-    const pin = requestPin('Enter your PIN to download the backup.')
+    elements.pinInput.value = ''
+    setPinError('')
+    setPinBusy(false)
+    elements.pinModal.hidden = false
+    elements.pinInput.focus()
+  }
 
-    if (pin === null) {
-      return
-    }
+  function closePinDialog() {
+    elements.pinModal.hidden = true
+    elements.pinInput.value = ''
+    setPinError('')
+    setPinBusy(false)
+  }
 
-    if (!pin) {
-      setExportError('Enter your PIN to download the backup.')
-      return
-    }
-
+  async function downloadBackup() {
     setBusy(true)
     setError('')
     setExportError('')
     setNotice('')
 
     try {
-      if (!(await verifyPin(pin))) {
-        setExportError('Incorrect PIN. The backup was not downloaded.')
-        return
-      }
-
       const backup = await exportBackup()
       downloadTextFile(
         timestampedFilename('paynote-backup', 'json'),
@@ -178,6 +208,41 @@ export function createBackupPage(
       setExportError(errorMessage(error))
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function handlePinSubmit(event?: Event) {
+    event?.preventDefault()
+
+    if (busy) {
+      return
+    }
+
+    const pin = elements.pinInput.value
+
+    if (!pin) {
+      setPinError('Enter your PIN.')
+      elements.pinInput.focus()
+      return
+    }
+
+    setPinBusy(true)
+    setPinError('')
+
+    try {
+      if (!(await verifyPin(pin))) {
+        setPinError('Incorrect PIN. Try again.')
+        elements.pinInput.value = ''
+        elements.pinInput.focus()
+        return
+      }
+
+      closePinDialog()
+      await downloadBackup()
+    } catch (error) {
+      setPinError(errorMessage(error))
+    } finally {
+      setPinBusy(false)
     }
   }
 
@@ -312,19 +377,37 @@ export function createBackupPage(
     }
   }
 
-  async function handleDeleteAll() {
+  function setDeletePinError(message: string) {
+    elements.deleteError.hidden = message === ''
+    elements.deleteError.textContent = message
+  }
+
+  function setDeletePinBusy(value: boolean) {
+    elements.deleteInput.disabled = value
+    elements.deleteSubmit.disabled = value
+    elements.deleteCancel.disabled = value
+  }
+
+  function openDeleteDialog() {
     if (busy) {
       return
     }
 
-    if (
-      !globalThis.confirm(
-        'This permanently deletes every customer, property, receipt, and setting from both Individual and Business. This cannot be undone. Continue?',
-      )
-    ) {
-      return
-    }
+    elements.deleteInput.value = ''
+    setDeletePinError('')
+    setDeletePinBusy(false)
+    elements.deleteModal.hidden = false
+    elements.deleteInput.focus()
+  }
 
+  function closeDeleteDialog() {
+    elements.deleteModal.hidden = true
+    elements.deleteInput.value = ''
+    setDeletePinError('')
+    setDeletePinBusy(false)
+  }
+
+  async function deleteWorkspace() {
     setBusy(true)
     setError('')
     setNotice('')
@@ -341,6 +424,41 @@ export function createBackupPage(
       setError(errorMessage(error))
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function handleDeletePinSubmit(event?: Event) {
+    event?.preventDefault()
+
+    if (busy) {
+      return
+    }
+
+    const pin = elements.deleteInput.value
+
+    if (!pin) {
+      setDeletePinError('Enter your PIN.')
+      elements.deleteInput.focus()
+      return
+    }
+
+    setDeletePinBusy(true)
+    setDeletePinError('')
+
+    try {
+      if (!(await verifyPin(pin))) {
+        setDeletePinError('Incorrect PIN. Try again.')
+        elements.deleteInput.value = ''
+        elements.deleteInput.focus()
+        return
+      }
+
+      closeDeleteDialog()
+      await deleteWorkspace()
+    } catch (error) {
+      setDeletePinError(errorMessage(error))
+    } finally {
+      setDeletePinBusy(false)
     }
   }
 
@@ -384,12 +502,31 @@ export function createBackupPage(
     void refresh()
   }
 
-  elements.exportButton.addEventListener('click', () => void handleExport())
+  const handlePinSubmitEvent = (event: Event) => {
+    void handlePinSubmit(event)
+  }
+  const handlePinInput = () => {
+    setPinError('')
+  }
+  const handleDeletePinSubmitEvent = (event: Event) => {
+    void handleDeletePinSubmit(event)
+  }
+  const handleDeletePinInput = () => {
+    setDeletePinError('')
+  }
+
+  elements.exportButton.addEventListener('click', openPinDialog)
+  elements.pinForm.addEventListener('submit', handlePinSubmitEvent)
+  elements.pinInput.addEventListener('input', handlePinInput)
+  elements.pinCancel.addEventListener('click', closePinDialog)
   elements.fileInput.addEventListener('change', handleFileChange)
   elements.restoreButton.addEventListener('click', () => void handleRestore())
   elements.clearButton?.addEventListener('click', handleClear)
-  const handleDeleteAllClick = () => void handleDeleteAll()
+  const handleDeleteAllClick = () => openDeleteDialog()
   elements.deleteAllButton?.addEventListener('click', handleDeleteAllClick)
+  elements.deleteForm.addEventListener('submit', handleDeletePinSubmitEvent)
+  elements.deleteInput.addEventListener('input', handleDeletePinInput)
+  elements.deleteCancel.addEventListener('click', closeDeleteDialog)
   elements.dropZone.addEventListener('dragover', handleDragOver)
   elements.dropZone.addEventListener('dragleave', handleDragLeave)
   elements.dropZone.addEventListener('drop', handleDrop)
@@ -458,6 +595,13 @@ export function createBackupPage(
   return {
     refresh,
     destroy() {
+      elements.exportButton.removeEventListener('click', openPinDialog)
+      elements.pinForm.removeEventListener('submit', handlePinSubmitEvent)
+      elements.pinInput.removeEventListener('input', handlePinInput)
+      elements.pinCancel.removeEventListener('click', closePinDialog)
+      elements.deleteForm.removeEventListener('submit', handleDeletePinSubmitEvent)
+      elements.deleteInput.removeEventListener('input', handleDeletePinInput)
+      elements.deleteCancel.removeEventListener('click', closeDeleteDialog)
       elements.fileInput.removeEventListener('change', handleFileChange)
       elements.dropZone.removeEventListener('dragover', handleDragOver)
       elements.dropZone.removeEventListener('dragleave', handleDragLeave)

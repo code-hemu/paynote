@@ -8,6 +8,7 @@ import type {
   ReceiptItem,
 } from '../db/types.ts'
 import { buildPrintableReceipt, type PrintableReceipt } from '../domain/print.ts'
+import { receiptQrText } from '../domain/receipt-qr.ts'
 import {
   findCategory,
   paymentMethodLabel,
@@ -28,7 +29,6 @@ import * as customerService from '../services/customers.ts'
 import type { PropertyLoader } from '../services/properties.ts'
 import * as propertyService from '../services/properties.ts'
 import { createQrSvg } from '../services/qr.ts'
-import { createReceiptShareLink } from '../services/receipt-share.ts'
 import * as receiptService from '../services/receipts.ts'
 import { readSettings } from '../services/settings.ts'
 import { formatCurrency, formatDate, formatLabel } from '../utils/format.ts'
@@ -529,7 +529,7 @@ export function createReceiptPage(
         business,
         customer,
       )
-      const qr = await createReceiptShareQr(printable)
+      const qr = await createReceiptQr(printable)
       elements.printArea.replaceChildren(
         renderReceiptSheet(doc, printable, { qr }),
       )
@@ -539,36 +539,13 @@ export function createReceiptPage(
     }
   }
 
-  async function createReceiptShareQr(
+  async function createReceiptQr(
     printable: PrintableReceipt,
   ): Promise<ReceiptQr | undefined> {
-    const href = view?.location.href
-
-    if (!href) {
-      return undefined
-    }
-
-    let base: URL
-
     try {
-      base = new URL(href)
-    } catch {
-      return undefined
-    }
-
-    if (base.protocol !== 'http:' && base.protocol !== 'https:') {
-      setNotice(
-        'Receipt QR codes require PayNote to be opened over HTTP or HTTPS.',
-      )
-      return undefined
-    }
-
-    try {
-      const share = await createReceiptShareLink(base.href, printable)
-
       return {
-        svg: await createQrSvg(share.url),
-        link: share.url,
+        svg: await createQrSvg(receiptQrText(printable)),
+        link: '',
       }
     } catch (error) {
       setNotice(errorMessage(error))

@@ -130,6 +130,16 @@ describe('index.html shell', () => {
       'data-backup-export',
       'data-backup-export-error',
       'data-backup-file',
+      'data-backup-pin-modal',
+      'data-backup-pin-form',
+      'data-backup-pin-input',
+      'data-backup-pin-submit',
+      'data-backup-pin-cancel',
+      'data-backup-delete-modal',
+      'data-backup-delete-form',
+      'data-backup-delete-input',
+      'data-backup-delete-submit',
+      'data-backup-delete-cancel',
     ]) {
       expect(indexHtml).toContain(marker)
     }
