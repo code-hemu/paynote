@@ -1998,21 +1998,8 @@
                 </div>
                 <div class="card-content stack">
                   <p class="list-status" data-backup-export-status>
-                    Export includes customers, properties, receipts, settings, and receipt numbering.
+                    Export includes customers, properties, receipts, settings, and receipt numbering. You will be asked for your PIN to download a backup.
                   </p>
-                  <label class="field">
-                    <span class="field-label">Backup passphrase</span>
-                    <input
-                      class="input"
-                      type="password"
-                      autocomplete="new-password"
-                      minlength="8"
-                      data-backup-export-passphrase
-                    />
-                    <span class="field-hint">
-                      Required. Use at least 8 characters. You will need this passphrase to restore the file.
-                    </span>
-                  </label>
                   <p class="form-error" data-backup-export-error role="alert" hidden></p>
                   <div class="form-actions">
                     <button class="button button-primary" type="button" data-backup-export>
@@ -2036,18 +2023,6 @@
                   <svg class="card-icon" aria-hidden="true"><use href="#icon-shield"></use></svg>
                 </div>
                 <div class="card-content stack">
-                  <label class="field">
-                    <span class="field-label">Backup passphrase</span>
-                    <input
-                      class="input"
-                      type="password"
-                      autocomplete="current-password"
-                      data-backup-restore-passphrase
-                    />
-                    <span class="field-hint">
-                      Required for encrypted backups. Leave blank for older plaintext backups.
-                    </span>
-                  </label>
                   <label class="file-drop" data-backup-dropzone>
                     <input type="file" accept="application/json,.json" data-backup-file hidden />
                     <svg class="icon" aria-hidden="true"><use href="#icon-hard-drive"></use></svg>

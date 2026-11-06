@@ -2,7 +2,6 @@ export const AES_KEY_BYTES = 32
 export const IV_BYTES = 12
 export const SALT_BYTES = 16
 export const PIN_ITERATIONS = 150_000
-export const BACKUP_ITERATIONS = 310_000
 export const DATABASE_AAD = new TextEncoder().encode('paynote:database:v1')
 export const DATABASE_KEY_AAD = new TextEncoder().encode(
   'paynote:database-key:v1',
@@ -87,41 +86,6 @@ export async function derivePinMaterial(
       'decrypt',
     ]),
   }
-}
-
-export async function derivePassphraseKey(
-  passphrase: string,
-  salt: Uint8Array,
-  iterations: number = BACKUP_ITERATIONS,
-): Promise<CryptoKey> {
-  const crypto = globalThis.crypto
-
-  if (!crypto?.subtle) {
-    throw new Error(
-      'This browser does not support the encryption PayNote needs to protect your backups.',
-    )
-  }
-
-  const passphraseKey = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(passphrase),
-    'PBKDF2',
-    false,
-    ['deriveKey'],
-  )
-
-  return crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt: bufferSource(salt),
-      iterations,
-      hash: 'SHA-256',
-    },
-    passphraseKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt'],
-  )
 }
 
 export async function encryptBytes(

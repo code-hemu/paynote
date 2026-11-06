@@ -125,14 +125,17 @@ describe('index.html shell', () => {
     }
   })
 
-  it('declares encrypted backup passphrase fields', () => {
+  it('declares the backup export and restore controls', () => {
     for (const marker of [
-      'data-backup-export-passphrase',
+      'data-backup-export',
       'data-backup-export-error',
-      'data-backup-restore-passphrase',
+      'data-backup-file',
     ]) {
       expect(indexHtml).toContain(marker)
     }
+
+    expect(indexHtml).not.toContain('data-backup-export-passphrase')
+    expect(indexHtml).not.toContain('data-backup-restore-passphrase')
   })
 
   it('declares the standalone shared receipt view', () => {

@@ -10,7 +10,7 @@ PayNote is a browser-based receipt and payment manager for small businesses. It 
 - **Customers & properties** — manage records, link them to receipts, and view totals and history.
 - **Dashboard & reports** — totals, recent activity, payment-method and category breakdowns, date-range filters, daily/monthly/yearly views, and CSV export.
 - **Printing** — A4 print layout with print-only styles, business details, logo, signature, and grayscale-safe styling.
-- **Backup & restore** — passphrase-encrypted JSON export/import with merge or replace modes, validation, rollback, and receipt CSV export. Legacy plaintext backups remain importable.
+- **Backup & restore** — PIN-protected JSON export/import with merge or replace modes, validation, rollback, and receipt CSV export. Backups download as decrypted JSON.
 - **Security** — the SQLite database is encrypted at rest with AES-256-GCM. A 4-digit PIN unlocks the encryption key through PBKDF2-SHA256, and changing the PIN rewraps the existing key without re-encrypting the database. Local-only storage and no application data logging.
 - **Personalization** — business or individual profiles, logo/profile photo, drawn signature, receipt prefix/currency/tax settings, date and number formats, and light/dark/system themes.
 - **Sharing** — shareable receipt links with QR codes.
@@ -76,7 +76,7 @@ sw.js         Service worker for offline support
 - A forgotten PIN means the encrypted database cannot be recovered.
 - Two separate workspaces are available: **Business** and **Individual**. They keep independent records in the same encrypted database.
 - Clearing browser data or site storage will delete your records. **Export a backup regularly** from the Backup & Restore page.
-- Backups are encrypted with a passphrase you choose. Keep both the backup file and its passphrase safe; a lost passphrase cannot be recovered.
+- Backups download as decrypted JSON after you confirm your PIN, so store backup files somewhere safe.
 - Receipt drafts are kept in local storage for crash recovery and are cleared whenever you lock the app. They are not stored inside the encrypted database.
 - A 4-digit PIN has only 10,000 possible values, so it is a convenience lock, not strong protection against a determined offline attacker who copies the encrypted database.
 
@@ -102,7 +102,7 @@ Notes:
 npm test
 ```
 
-The suite covers domain logic, SQLite repositories and migrations, PIN key wrapping, encrypted backups, UI controllers, backup/restore, formatting, and CSV handling.
+The suite covers domain logic, SQLite repositories and migrations, PIN key wrapping, UI controllers, backup/restore, formatting, and CSV handling.
 
 ## License
 

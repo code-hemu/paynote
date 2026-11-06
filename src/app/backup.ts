@@ -1,14 +1,12 @@
-import type {
-  BackupFile,
-  RestoreMode,
-  RestoreSummary,
+import {
+  parseBackup,
+  serializeBackup,
+  type BackupFile,
+  type RestoreMode,
+  type RestoreSummary,
 } from '../domain/backup.ts'
 import * as backupService from '../services/backup.ts'
-import {
-  encryptBackup,
-  isEncryptedBackupText,
-  parseBackupFile,
-} from '../services/backup-crypto.ts'
+import { pinService } from '../services/pin.ts'
 import { listReceipts } from '../services/receipts.ts'
 import { downloadTextFile, timestampedFilename, toCsv } from '../utils/csv.ts'
 import { formatBytes, formatDate } from '../utils/format.ts'
@@ -19,6 +17,8 @@ export interface BackupDeps {
   exportBackup?: typeof backupService.exportBackup
   restoreBackup?: typeof backupService.restoreBackup
   deleteAllData?: typeof backupService.deleteAllData
+  verifyPin?: (pin: string) => Promise<boolean>
+  requestPin?: (message: string) => string | null
 }
 
 export interface BackupController {
@@ -30,9 +30,7 @@ interface BackupElements {
   root: HTMLElement
   exportButton: HTMLButtonElement
   exportStatus: HTMLElement
-  exportPassphrase: HTMLInputElement
   exportError: HTMLElement
-  restorePassphrase: HTMLInputElement
   fileInput: HTMLInputElement
   fileLabel: HTMLElement
   dropZone: HTMLElement
@@ -61,9 +59,7 @@ function queryElements(doc: Document): BackupElements {
     root: doc.querySelector<HTMLElement>('[data-backup]')!,
     exportButton: doc.querySelector<HTMLButtonElement>('[data-backup-export]')!,
     exportStatus: doc.querySelector<HTMLElement>('[data-backup-export-status]')!,
-    exportPassphrase: doc.querySelector<HTMLInputElement>('[data-backup-export-passphrase]')!,
     exportError: doc.querySelector<HTMLElement>('[data-backup-export-error]')!,
-    restorePassphrase: doc.querySelector<HTMLInputElement>('[data-backup-restore-passphrase]')!,
     fileInput: doc.querySelector<HTMLInputElement>('[data-backup-file]')!,
     fileLabel: doc.querySelector<HTMLElement>('[data-backup-file-label]')!,
     dropZone: doc.querySelector<HTMLElement>('[data-backup-dropzone]')!,
@@ -101,13 +97,16 @@ export function createBackupPage(
   const exportBackup = deps.exportBackup ?? backupService.exportBackup
   const restoreBackup = deps.restoreBackup ?? backupService.restoreBackup
   const deleteAllData = deps.deleteAllData ?? backupService.deleteAllData
+  const verifyPin = deps.verifyPin ?? pinService.verifyPin
+  const requestPin =
+    deps.requestPin ??
+    ((message: string) => globalThis.prompt(message))
 
   let selected: BackupFile | null = null
   let selectedName = ''
   let selectedText = ''
   let selectedBytes = 0
   let busy = false
-  let passphraseTimer: ReturnType<typeof setTimeout> | undefined
 
   function setNotice(message: string) {
     elements.notice.textContent = message
@@ -130,8 +129,6 @@ export function createBackupPage(
     elements.exportButton.disabled = value
     elements.restoreButton.disabled = value || selected === null
     elements.fileInput.disabled = value
-    elements.exportPassphrase.disabled = value
-    elements.restorePassphrase.disabled = value
     if (elements.deleteAllButton) {
       elements.deleteAllButton.disabled = value
     }
@@ -147,24 +144,36 @@ export function createBackupPage(
       return
     }
 
+    const pin = requestPin('Enter your PIN to download the backup.')
+
+    if (pin === null) {
+      return
+    }
+
+    if (!pin) {
+      setExportError('Enter your PIN to download the backup.')
+      return
+    }
+
     setBusy(true)
     setError('')
     setExportError('')
     setNotice('')
 
     try {
+      if (!(await verifyPin(pin))) {
+        setExportError('Incorrect PIN. The backup was not downloaded.')
+        return
+      }
+
       const backup = await exportBackup()
-      const encrypted = await encryptBackup(
-        backup,
-        elements.exportPassphrase.value,
-      )
       downloadTextFile(
         timestampedFilename('paynote-backup', 'json'),
-        encrypted,
+        serializeBackup(backup),
         'application/json;charset=utf-8',
       )
-      elements.exportStatus.textContent = `Encrypted backup created ${formatDate(backup.manifest.createdAt)} with ${backup.receipts.length} receipt${backup.receipts.length === 1 ? '' : 's'}.`
-      setNotice('Encrypted backup downloaded. Keep it and its passphrase safe.')
+      elements.exportStatus.textContent = `Backup created ${formatDate(backup.manifest.createdAt)} with ${backup.receipts.length} receipt${backup.receipts.length === 1 ? '' : 's'}.`
+      setNotice('Backup downloaded. Store it somewhere safe.')
     } catch (error) {
       setExportError(errorMessage(error))
     } finally {
@@ -207,16 +216,9 @@ export function createBackupPage(
     }
 
     try {
-      selected = await parseBackupFile(
-        selectedText,
-        elements.restorePassphrase.value,
-      )
+      selected = parseBackup(selectedText)
       renderPreview(selected, selectedBytes)
-      setNotice(
-        isEncryptedBackupText(selectedText)
-          ? 'Encrypted backup unlocked. Review the summary before restoring.'
-          : 'Backup file looks valid. Review the summary before restoring.',
-      )
+      setNotice('Backup file looks valid. Review the summary before restoring.')
       setError('')
     } catch (error) {
       selected = null
@@ -224,22 +226,6 @@ export function createBackupPage(
       elements.preview.hidden = true
       elements.restoreButton.disabled = true
       setError(errorMessage(error))
-    }
-  }
-
-  async function reloadSelected() {
-    if (!selectedText || busy) {
-      return
-    }
-
-    setBusy(true)
-    setError('')
-    setNotice('')
-
-    try {
-      await loadSelected()
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -316,8 +302,6 @@ export function createBackupPage(
       )
       elements.statusLine.textContent = 'Data restored. Reloading values from storage.'
       resetSelection()
-      elements.exportPassphrase.value = ''
-      elements.restorePassphrase.value = ''
       elements.fileInput.value = ''
       elements.fileLabel.textContent = 'Choose a backup file'
       view?.dispatchEvent(new CustomEvent('paynote:data-changed'))
@@ -391,22 +375,8 @@ export function createBackupPage(
     resetSelection()
     elements.fileInput.value = ''
     elements.fileLabel.textContent = 'Choose a backup file'
-    elements.restorePassphrase.value = ''
     setError('')
     setNotice('')
-  }
-
-  function handleRestorePassphraseInput() {
-    elements.restoreButton.disabled = true
-
-    if (passphraseTimer !== undefined) {
-      clearTimeout(passphraseTimer)
-    }
-
-    passphraseTimer = setTimeout(() => {
-      passphraseTimer = undefined
-      void reloadSelected()
-    }, 250)
   }
 
   function handleProfileChanged() {
@@ -416,10 +386,6 @@ export function createBackupPage(
 
   elements.exportButton.addEventListener('click', () => void handleExport())
   elements.fileInput.addEventListener('change', handleFileChange)
-  elements.restorePassphrase.addEventListener(
-    'input',
-    handleRestorePassphraseInput,
-  )
   elements.restoreButton.addEventListener('click', () => void handleRestore())
   elements.clearButton?.addEventListener('click', handleClear)
   const handleDeleteAllClick = () => void handleDeleteAll()
@@ -485,7 +451,7 @@ export function createBackupPage(
   setBusy(false)
 
   async function refresh() {
-    elements.exportStatus.textContent = 'Exports are encrypted with your passphrase and include customers, properties, receipts, a receipt CSV, settings, and receipt numbering.'
+    elements.exportStatus.textContent = 'Exports include customers, properties, receipts, a receipt CSV, settings, and receipt numbering. You will be asked for your PIN to download a backup.'
     return Promise.resolve()
   }
 
@@ -493,13 +459,6 @@ export function createBackupPage(
     refresh,
     destroy() {
       elements.fileInput.removeEventListener('change', handleFileChange)
-      elements.restorePassphrase.removeEventListener(
-        'input',
-        handleRestorePassphraseInput,
-      )
-      if (passphraseTimer !== undefined) {
-        clearTimeout(passphraseTimer)
-      }
       elements.dropZone.removeEventListener('dragover', handleDragOver)
       elements.dropZone.removeEventListener('dragleave', handleDragLeave)
       elements.dropZone.removeEventListener('drop', handleDrop)
