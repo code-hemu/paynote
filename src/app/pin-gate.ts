@@ -1,7 +1,4 @@
-import {
-  closeDatabase,
-  eraseDatabaseStorage,
-} from '../services/database.ts'
+import { closeDatabase } from '../services/database.ts'
 import { hasStoredDatabase } from '../services/encrypted-store.ts'
 import {
   PIN_LENGTH,
@@ -24,9 +21,7 @@ export interface PinGateDeps {
   service?: PinService
   onUnlocked?: (key: Uint8Array) => void | Promise<void>
   onLocked?: () => void | Promise<void>
-  eraseStorage?: () => Promise<void>
   hasExistingData?: () => Promise<boolean>
-  confirm?: (message: string) => boolean
 }
 
 export interface PinGate {
@@ -45,7 +40,6 @@ interface PinElements {
   unlockForm: HTMLFormElement
   unlockSubmit: HTMLButtonElement
   forgot: HTMLButtonElement
-  erase: HTMLButtonElement
   resetForm: HTMLFormElement
   resetPanel: HTMLElement
   resetConfirm: HTMLButtonElement
@@ -76,7 +70,6 @@ function queryElements(doc: Document): PinElements {
     unlockForm: required(doc, '[data-pin-unlock-form]'),
     unlockSubmit: required(doc, '[data-pin-unlock-submit]'),
     forgot: required(doc, '[data-pin-forgot]'),
-    erase: required(doc, '[data-pin-erase]'),
     resetForm: required(doc, '[data-pin-reset-form]'),
     resetPanel: required(doc, '[data-pin-reset-panel]'),
     resetConfirm: required(doc, '[data-pin-reset-confirm]'),
@@ -176,9 +169,7 @@ export function createPinGate(
   deps: PinGateDeps = {},
 ): PinGate {
   const service = deps.service ?? pinService
-  const eraseStorage = deps.eraseStorage ?? eraseDatabaseStorage
   const hasExistingData = deps.hasExistingData ?? hasStoredDatabase
-  const confirm = deps.confirm ?? ((message: string) => globalThis.confirm(message))
   const elements = queryElements(doc)
   let busy = false
   let booted = false
@@ -340,7 +331,7 @@ export function createPinGate(
         showFormError(
           doc,
           'pinsetup',
-          'Encrypted records exist on this device, but the PIN record is missing or damaged. Use Forgot PIN? Erase all data to start over.',
+          'Encrypted records exist on this device, but the PIN record is missing or damaged. The workspace cannot be opened.',
         )
         return
       }
@@ -415,47 +406,6 @@ export function createPinGate(
     }
   }
 
-  async function handleErase(event?: Event) {
-    event?.preventDefault()
-
-    if (busy) {
-      return
-    }
-
-    if (
-      !confirm(
-        'Erase all PayNote records and your PIN? The encrypted database cannot be recovered without the PIN. This cannot be undone.',
-      )
-    ) {
-      return
-    }
-
-    clearFormErrors(doc, 'pinunlock')
-    setNotice('')
-    busy = true
-    setBusy(doc, 'pinunlock', elements.unlockSubmit, true)
-
-    try {
-      await eraseStorage()
-      service.clearPin()
-      clearReceiptDrafts()
-      clearInputs('pinunlock')
-      clearInputs('pinreset')
-      booted = false
-      showSetup()
-      setNotice('All records and your PIN were erased. Create a new PIN to start over.')
-    } catch (error) {
-      showFormError(
-        doc,
-        'pinunlock',
-        error instanceof Error ? error.message : 'The workspace could not be erased.',
-      )
-    } finally {
-      busy = false
-      setBusy(doc, 'pinunlock', elements.unlockSubmit, false)
-    }
-  }
-
   function clearInputs(prefix: 'pinsetup' | 'pinunlock' | 'pinreset') {
     for (const element of doc.querySelectorAll<HTMLElement>(
       `[data-${prefix}-input]`,
@@ -498,17 +448,12 @@ export function createPinGate(
   const resetCancelClick = () => {
     cancelReset()
   }
-  const eraseClick = () => {
-    void handleErase()
-  }
-
   elements.setupForm.addEventListener('submit', setupEvent)
   elements.unlockForm.addEventListener('submit', unlockEvent)
   elements.resetForm.addEventListener('submit', resetEvent)
   elements.setupSubmit.addEventListener('click', setupClick)
   elements.unlockSubmit.addEventListener('click', unlockClick)
   elements.forgot.addEventListener('click', forgotClick)
-  elements.erase.addEventListener('click', eraseClick)
   elements.resetCancel.addEventListener('click', resetCancelClick)
   elements.lock.addEventListener('click', lockClick)
 
@@ -526,7 +471,6 @@ export function createPinGate(
       elements.setupSubmit.removeEventListener('click', setupClick)
       elements.unlockSubmit.removeEventListener('click', unlockClick)
       elements.forgot.removeEventListener('click', forgotClick)
-      elements.erase.removeEventListener('click', eraseClick)
       elements.resetCancel.removeEventListener('click', resetCancelClick)
       elements.lock.removeEventListener('click', lockClick)
     },

@@ -73,7 +73,7 @@ sw.js         Service worker for offline support
 
 - All data stays on your device in an encrypted SQLite database inside IndexedDB. Nothing is sent to a server.
 - The database is encrypted with a random 256-bit data key. Your PIN derives a separate key-encryption key that wraps the data key; the data key exists in memory only while the app is unlocked.
-- A forgotten PIN means the encrypted database cannot be recovered. Use **Forgot PIN? Erase all data** on the unlock screen to delete the PIN, encrypted database, and legacy local database before starting over.
+- A forgotten PIN means the encrypted database cannot be recovered.
 - Two separate workspaces are available: **Business** and **Individual**. They keep independent records in the same encrypted database.
 - Clearing browser data or site storage will delete your records. **Export a backup regularly** from the Backup & Restore page.
 - Backups are encrypted with a passphrase you choose. Keep both the backup file and its passphrase safe; a lost passphrase cannot be recovered.

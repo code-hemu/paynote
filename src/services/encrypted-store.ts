@@ -101,7 +101,7 @@ export async function readStoredDatabase(): Promise<StoredDatabase | null> {
 
     if (!isStoredDatabase(value)) {
       throw new Error(
-        'The encrypted database is damaged or was created by an incompatible PayNote version. Erase all data to start over.',
+        'The encrypted database is damaged or was created by an incompatible PayNote version.',
       )
     }
 

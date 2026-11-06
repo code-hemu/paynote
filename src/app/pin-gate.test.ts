@@ -61,7 +61,6 @@ interface Fixture {
   setupSubmit: FakeElement
   unlockSubmit: FakeElement
   forgot: FakeElement
-  erase: FakeElement
   resetForm: FakeElement
   resetPanel: FakeElement
   resetConfirm: FakeElement
@@ -95,7 +94,6 @@ function createFixture(): Fixture {
   const setupSubmit = document.add(new FakeElement({ pinSetupSubmit: '' }))
   const unlockSubmit = document.add(new FakeElement({ pinUnlockSubmit: '' }))
   const forgot = document.add(new FakeElement({ pinForgot: '' }))
-  const erase = document.add(new FakeElement({ pinErase: '' }))
   const resetForm = document.add(
     new FakeElement({ pinResetForm: '', pinResetPanel: '' }),
   )
@@ -145,7 +143,6 @@ function createFixture(): Fixture {
     setupSubmit,
     unlockSubmit,
     forgot,
-    erase,
     resetForm,
     resetPanel,
     resetConfirm,
@@ -350,44 +347,6 @@ describe('PIN gate', () => {
     expect(fixture.resetPanel.hidden).toBe(true)
     expect(fixture.unlockForm.hidden).toBe(false)
     expect(fixture.title.textContent).toBe('Enter your PIN')
-  })
-
-  it('erases the workspace after confirmation', async () => {
-    const service = new FakePinService('1234')
-    let erased = false
-    const fixture = mount(service, createFixture(), {
-      confirm: () => true,
-      eraseStorage: async () => {
-        erased = true
-      },
-    })
-
-    fixture.erase.click()
-    await flush()
-
-    expect(erased).toBe(true)
-    expect(service.pin).toBe(null)
-    expect(fixture.setupForm.hidden).toBe(false)
-    expect(fixture.unlockForm.hidden).toBe(true)
-    expect(fixture.title.textContent).toBe('Create a PIN')
-  })
-
-  it('keeps the workspace when erase is cancelled', async () => {
-    const service = new FakePinService('1234')
-    let erased = false
-    const fixture = mount(service, createFixture(), {
-      confirm: () => false,
-      eraseStorage: async () => {
-        erased = true
-      },
-    })
-
-    fixture.erase.click()
-    await flush()
-
-    expect(erased).toBe(false)
-    expect(service.pin).toBe('1234')
-    expect(fixture.unlockForm.hidden).toBe(false)
   })
 
   it('validates setup values', () => {

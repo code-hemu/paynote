@@ -112,7 +112,6 @@ describe('index.html shell', () => {
       'data-pin-setup-submit',
       'data-pin-unlock-submit',
       'data-pin-forgot',
-      'data-pin-erase',
       'data-pin-reset-form',
       'data-pinreset-input="oldPin"',
       'data-pinreset-input="newPin"',
