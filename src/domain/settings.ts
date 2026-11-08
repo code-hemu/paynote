@@ -27,14 +27,14 @@ export const SETTING_KEYS = {
   numberFormat: 'display.numberFormat',
 } as const
 
-export const DATE_FORMATS = [
+const DATE_FORMATS = [
   'DD/MM/YYYY',
   'MM/DD/YYYY',
   'YYYY-MM-DD',
   'D MMM YYYY',
 ] as const
 
-export const NUMBER_FORMATS = [
+const NUMBER_FORMATS = [
   'en-IN',
   'en-US',
   'en-GB',
@@ -53,7 +53,7 @@ export interface BusinessProfile {
   signature?: string
 }
 
-export type ProfileType = 'individual' | 'business'
+type ProfileType = 'individual' | 'business'
 
 export interface SettingsFormValues {
   profileType: string

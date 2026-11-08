@@ -17,7 +17,7 @@ import { switchProfile } from '../services/profile.ts'
 import * as settingsService from '../services/settings.ts'
 import { setFormValues, clearFormErrors, focusFirstField } from './form-dom.ts'
 
-export const THEME_KEY = 'paynote.theme'
+const THEME_KEY = 'paynote.theme'
 
 export type ThemePreference = 'system' | 'light' | 'dark'
 

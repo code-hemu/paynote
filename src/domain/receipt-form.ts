@@ -52,12 +52,6 @@ export interface ReceiptFormInput {
   }>
 }
 
-export interface ParsedReceiptForm {
-  values: ReceiptFormValues
-  totalPaise: number
-  errors: ReceiptFormErrors
-}
-
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 export function parsePositiveAmount(value: string): number {

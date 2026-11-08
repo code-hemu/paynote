@@ -1,7 +1,7 @@
 import type { SettingRecord } from '../db/types.ts'
 import { getDatabaseClient } from './database.ts'
 
-export function listSettings(): Promise<SettingRecord[]> {
+function listSettings(): Promise<SettingRecord[]> {
   return getDatabaseClient().listSettings()
 }
 

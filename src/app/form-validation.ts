@@ -1,4 +1,4 @@
-import { PROPERTY_TYPES, type PropertyType } from '../db/types.ts'
+import { PROPERTY_TYPES } from '../db/types.ts'
 
 export type FormErrors = Record<string, string>
 
@@ -104,10 +104,6 @@ export function validatePropertyForm(values: PropertyFormValues): FormErrors {
   checkLength(values.notes, 'notes', 'Notes', 2000, errors)
 
   return errors
-}
-
-export function isPropertyType(value: string): value is PropertyType {
-  return (PROPERTY_TYPES as readonly string[]).includes(value)
 }
 
 export function hasErrors(errors: FormErrors): boolean {

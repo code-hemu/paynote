@@ -4,7 +4,7 @@ import { LATEST_SCHEMA_VERSION } from '../db/migrations.ts'
 import type { AppInfo, StorageHealth } from '../types/system.ts'
 import { getDatabaseClient } from './database.ts'
 
-export function getStorageLocation(): string {
+function getStorageLocation(): string {
   return SECURE_DATABASE_PATH
 }
 

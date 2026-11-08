@@ -5,7 +5,6 @@ import type {
   PropertyInput,
   Receipt,
   ReceiptInput,
-  ReceiptItem,
 } from '../db/types.ts'
 import { buildPrintableReceipt, type PrintableReceipt } from '../domain/print.ts'
 import {
@@ -683,14 +682,4 @@ function populateFilter(
 
 function formatQuantity(quantity: number): string {
   return Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
-}
-
-export function receiptStatusOptions(): Array<{ value: ReceiptStatus; label: string }> {
-  return (['draft', 'issued', 'paid', 'cancelled'] as ReceiptStatus[]).map(
-    (status) => ({ value: status, label: RECEIPT_STATUS_LABELS[status] }),
-  )
-}
-
-export function receiptItemTotal(item: ReceiptItem): number {
-  return item.lineTotalPaise
 }

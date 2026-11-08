@@ -1,4 +1,4 @@
-export const RECEIPT_STATUSES = ['draft', 'issued', 'paid', 'cancelled'] as const
+const RECEIPT_STATUSES = ['draft', 'issued', 'paid', 'cancelled'] as const
 
 export type ReceiptStatus = (typeof RECEIPT_STATUSES)[number]
 

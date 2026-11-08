@@ -7,10 +7,7 @@ import type {
 } from '../db/types.ts'
 import {
   findCategory,
-  PAYMENT_METHODS,
-  PAYMENT_METHOD_LABELS,
   paymentReferenceLabel,
-  RECEIPT_CATEGORIES,
 } from '../domain/receipt-categories.ts'
 import {
   buildReceiptInput,
@@ -75,7 +72,7 @@ export interface ReceiptFormController {
   destroy(): void
 }
 
-export interface PrefillValues {
+interface PrefillValues {
   receiptType?: string
   customerId?: string
   propertyId?: string
@@ -1038,18 +1035,4 @@ function formatDateInput(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-export function receiptCategoryOptions(): Array<{ value: string; label: string }> {
-  return RECEIPT_CATEGORIES.map((category) => ({
-    value: category.value,
-    label: category.label,
-  }))
-}
-
-export function paymentMethodOptions(): Array<{ value: string; label: string }> {
-  return PAYMENT_METHODS.map((method) => ({
-    value: method,
-    label: PAYMENT_METHOD_LABELS[method],
-  }))
 }

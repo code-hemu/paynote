@@ -3,7 +3,6 @@ import {
   RECEIPT_CATEGORIES,
 } from '../domain/receipt-categories.ts'
 import {
-  localDateString,
   normalizeFilters,
   rangeForPreset,
   type ReportBreakdownRow,
@@ -686,18 +685,4 @@ function formatPeriod(kind: BreakdownKey, key: string): string {
   }
 
   return formatDate(key)
-}
-
-export function reportRangeLabel(preset: ReportPreset): string {
-  const range = rangeForPreset(preset)
-
-  if (!range.fromDate || !range.toDate) {
-    return 'All dates'
-  }
-
-  return `${range.fromDate === range.toDate ? '' : `${range.fromDate} to `}${range.toDate}`
-}
-
-export function todayString(now: Date = new Date()): string {
-  return localDateString(now)
 }

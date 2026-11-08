@@ -184,33 +184,6 @@ export async function writeStoredDatabase(
   }
 }
 
-export async function deleteStoredDatabase(): Promise<void> {
-  const factory = indexedDb()
-
-  await new Promise<void>((resolve, reject) => {
-    const request = factory.deleteDatabase(SECURE_DATABASE_NAME)
-
-    request.onerror = () => {
-      reject(
-        request.error ??
-          new Error('The encrypted database could not be deleted.'),
-      )
-    }
-
-    request.onsuccess = () => {
-      resolve()
-    }
-
-    request.onblocked = () => {
-      reject(
-        new Error(
-          'Close other PayNote tabs before erasing the encrypted database.',
-        ),
-      )
-    }
-  })
-}
-
 function isStoredDatabase(value: unknown): value is StoredDatabase {
   if (!value || typeof value !== 'object') {
     return false

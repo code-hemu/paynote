@@ -9,10 +9,10 @@ export interface DatabaseConfig {
   lock: string
 }
 
-export const DATABASE_FILE = '/paynote.sqlite3'
-export const DATABASE_DIRECTORY = '/paynote'
-export const DATABASE_VFS = 'paynote-opfs'
-export const DATABASE_LOCK = 'paynote-database'
+const DATABASE_FILE = '/paynote.sqlite3'
+const DATABASE_DIRECTORY = '/paynote'
+const DATABASE_VFS = 'paynote-opfs'
+const DATABASE_LOCK = 'paynote-database'
 export const DATABASE_WORKER_FILE = 'sqlite.worker.js'
 export const SECURE_DATABASE_NAME = 'paynote-secure'
 export const SECURE_DATABASE_STORE = 'database'

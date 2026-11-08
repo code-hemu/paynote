@@ -1,7 +1,7 @@
 import { getActiveProfile, type DbProfile } from '../db/profile.ts'
 import type { ReceiptFormValues } from '../domain/receipt-form.ts'
 
-export const RECEIPT_DRAFT_KEY = 'paynote.receipt.draft.v1'
+const RECEIPT_DRAFT_KEY = 'paynote.receipt.draft.v1'
 
 export function receiptDraftKey(
   profile: DbProfile = getActiveProfile(),

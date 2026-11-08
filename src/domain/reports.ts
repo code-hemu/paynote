@@ -71,19 +71,19 @@ export function parseDate(value: string): Date | null {
   return localDateString(parsed) === value ? parsed : null
 }
 
-export function startOfMonth(date: Date): Date {
+function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }
 
-export function endOfMonth(date: Date): Date {
+function endOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0)
 }
 
-export function startOfYear(date: Date): Date {
+function startOfYear(date: Date): Date {
   return new Date(date.getFullYear(), 0, 1)
 }
 
-export function endOfYear(date: Date): Date {
+function endOfYear(date: Date): Date {
   return new Date(date.getFullYear(), 11, 31)
 }
 

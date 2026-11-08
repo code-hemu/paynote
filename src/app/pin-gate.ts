@@ -136,7 +136,7 @@ export function validatePinSetup(pin: string, confirmPin: string): FormErrors {
   return errors
 }
 
-export function validatePinReset(
+function validatePinReset(
   oldPin: string,
   newPin: string,
   confirmPin: string,

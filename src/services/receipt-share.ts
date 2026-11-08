@@ -62,7 +62,7 @@ const AAD = new TextEncoder().encode('paynote-receipt-share-v1')
 const INVALID_LINK_MESSAGE =
   'This receipt link is invalid or has been altered.'
 
-export function receiptShareDetails(
+function receiptShareDetails(
   printable: PrintableReceipt,
 ): ReceiptShareDetails {
   return {

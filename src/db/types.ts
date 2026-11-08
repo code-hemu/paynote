@@ -78,7 +78,7 @@ export interface ReceiptDetail {
   fieldValue: string
 }
 
-export interface ReceiptDetailInput {
+interface ReceiptDetailInput {
   fieldKey: string
   fieldValue: string
 }
@@ -91,7 +91,7 @@ export interface ReceiptItem {
   lineTotalPaise: number
 }
 
-export interface ReceiptItemInput {
+interface ReceiptItemInput {
   description: string
   quantity: number
   ratePaise: number
@@ -172,13 +172,6 @@ export interface PropertyDetail {
   totalPaise: number
   customers: PropertyCustomerSummary[]
   recentReceipts: ReceiptSummary[]
-}
-
-export interface ReceiptSequence {
-  year: number
-  prefix: string
-  nextNumber: number
-  updatedAt: string
 }
 
 export interface SettingRecord {

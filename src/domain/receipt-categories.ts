@@ -1,6 +1,6 @@
-export type CategoryFieldType = 'text' | 'date' | 'number' | 'textarea'
+type CategoryFieldType = 'text' | 'date' | 'number' | 'textarea'
 
-export interface CategoryField {
+interface CategoryField {
   key: string
   label: string
   type: CategoryFieldType
@@ -16,7 +16,7 @@ export interface ReceiptCategory {
   fields: readonly CategoryField[]
 }
 
-export const PAYMENT_METHODS = [
+const PAYMENT_METHODS = [
   'cash',
   'upi',
   'bank-transfer',
@@ -27,7 +27,7 @@ export const PAYMENT_METHODS = [
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number]
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: 'Cash',
   upi: 'UPI',
   'bank-transfer': 'Bank transfer',

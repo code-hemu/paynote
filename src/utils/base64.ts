@@ -18,15 +18,3 @@ export function decodeBase64(value: string): Uint8Array<ArrayBuffer> {
 
   return bytes
 }
-
-export function encodeBase64Url(bytes: Uint8Array): string {
-  return encodeBase64(bytes)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
-}
-
-export function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
-  const padding = '='.repeat((4 - (value.length % 4)) % 4)
-  return decodeBase64(value.replace(/-/g, '+').replace(/_/g, '/') + padding)
-}
