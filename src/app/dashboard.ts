@@ -98,6 +98,7 @@ export function createDashboard(
 
       const number = doc.createElement('td')
       number.className = 'table-cell-primary'
+      number.dataset.label = 'Number'
       const link = doc.createElement('button')
       link.type = 'button'
       link.className = 'link-button'
@@ -112,20 +113,25 @@ export function createDashboard(
 
       const date = doc.createElement('td')
       date.className = 'table-cell-muted'
+      date.dataset.label = 'Date'
       date.textContent = formatDate(receipt.receiptDate)
 
       const customer = doc.createElement('td')
       customer.className = 'table-cell-muted'
+      customer.dataset.label = 'Customer'
       customer.textContent = receipt.customerName ?? '—'
 
       const type = doc.createElement('td')
       type.className = 'table-cell-muted'
+      type.dataset.label = 'Category'
       type.textContent = formatLabel(receipt.receiptType)
 
       const amount = doc.createElement('td')
+      amount.dataset.label = 'Amount'
       amount.textContent = formatCurrency(receipt.amountPaise)
 
       const status = doc.createElement('td')
+      status.dataset.label = 'Status'
       const badge = doc.createElement('span')
       badge.className = `badge badge-${statusVariant(receipt.status)}`
       badge.textContent = RECEIPT_STATUS_LABELS[receipt.status]
